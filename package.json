@@ -1,5 +1,5 @@
 {
-  "name": "ordering_system",
+  "name": "canteen",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -29,6 +29,7 @@
   "dependencies": {
     "@prisma/client": "^5.19.1",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^4.20.0",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",

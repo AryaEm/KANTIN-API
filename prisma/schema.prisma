@@ -55,7 +55,7 @@ model Siswa {
   foto          String?       @default("")
 
   id_user       Int           @unique
-  user          User         @relation(fields: [id_user], references: [id])
+  user          User         @relation(fields: [id_user], references: [id], onDelete: Cascade)
 
   transaksi     Transaksi[]
 }
@@ -67,12 +67,11 @@ model Stan {
   telp         String       @default("")
 
   id_user      Int          @unique
-  user         User        @relation(fields: [id_user], references: [id])
+  user         User        @relation(fields: [id_user], references: [id], onDelete: Cascade)
 
   menu         Menu[]
   transaksi    Transaksi[]
 }
-
 
 model Menu {
   id              Int                @id @default(autoincrement())
@@ -83,7 +82,7 @@ model Menu {
   deskripsi       String?            @default("") @db.Text
 
   id_stan         Int
-  stan            Stan              @relation(fields: [id_stan], references: [id])
+  stan            Stan              @relation(fields: [id_stan], references: [id], onDelete: Cascade)
 
   menuDiskon      MenuDiskon[]
   detailTransaksi DetailTransaksi[]
@@ -97,8 +96,8 @@ model Transaksi {
   id_stan  Int
   id_siswa Int
 
-  stan     Stan              @relation(fields: [id_stan], references: [id])
-  siswa    Siswa             @relation(fields: [id_siswa], references: [id])
+  stan     Stan              @relation(fields: [id_stan], references: [id], onDelete: Cascade)
+  siswa    Siswa             @relation(fields: [id_siswa], references: [id], onDelete: Cascade)
 
   detail   DetailTransaksi[]
 }
@@ -110,8 +109,8 @@ model DetailTransaksi {
   qty          Int        @default(0)
   harga_beli   Int        @default(0)
 
-  transaksi    Transaksi @relation(fields: [id_transaksi], references: [id])
-  menu         Menu      @relation(fields: [id_menu], references: [id])
+  transaksi    Transaksi @relation(fields: [id_transaksi], references: [id], onDelete: Cascade)
+  menu         Menu      @relation(fields: [id_menu], references: [id], onDelete: Cascade)
 }
 
 model Diskon {
@@ -129,6 +128,6 @@ model MenuDiskon {
   id_menu   Int
   id_diskon Int
 
-  menu      Menu   @relation(fields: [id_menu], references: [id])
-  diskon    Diskon @relation(fields: [id_diskon], references: [id])
+  menu      Menu   @relation(fields: [id_menu], references: [id], onDelete: Cascade)
+  diskon    Diskon @relation(fields: [id_diskon], references: [id], onDelete: Cascade)
 }

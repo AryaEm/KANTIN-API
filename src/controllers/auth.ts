@@ -2,20 +2,25 @@ import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
 import md5 from "md5";
-import { sign } from "jsonwebtoken";
+import { SECRET } from "../global";
+import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient({ errorFormat: "pretty" })
 
 export const registerSiswa = async (req: Request, res: Response) => {
     try {
-        const { username, password, nama_siswa, alamat, telp, jenis_kelamin } = req.body;
+        const {
+            username,
+            password,
+            nama_siswa,
+            alamat,
+            telp,
+            jenis_kelamin
+        } = req.body;
 
-        const existingUser = await prisma.user.findUnique({
-            where: { username },
-        });
-
-        if (existingUser) {
-            return res.status(400).json({ status: false, message: "Username already registered" });
+        const existing = await prisma.user.findUnique({ where: { username } });
+        if (existing) {
+            return res.status(400).json({ status: false, message: "Username already taken" });
         }
 
         const user = await prisma.user.create({
@@ -27,7 +32,7 @@ export const registerSiswa = async (req: Request, res: Response) => {
             }
         });
 
-        const siswa = await prisma.siswa.create({
+        await prisma.siswa.create({
             data: {
                 nama_siswa,
                 alamat,
@@ -37,33 +42,38 @@ export const registerSiswa = async (req: Request, res: Response) => {
             }
         });
 
-        return res.status(201).json({
+        const token = jwt.sign(
+            { id: user.id, role: user.role },
+            SECRET!,
+            { expiresIn: "1d" }
+        );
+
+        return res.status(200).json({
             status: true,
-            message: "Siswa registered successfully",
-            data: {
-                user,
-                siswa
-            }
+            message: "Register siswa berhasil",
+            token,
+            user
         });
 
-    } catch (error: any) {
-        return res.status(500).json({
-            status: false,
-            message: error?.message || "Internal server error"
-        });
+    } catch (error) {
+        return res.status(500).json({ status: false, message: `Error: ${error}` });
     }
 };
 
-export const registerAdminStan = async (req: Request, res: Response) => {
+
+export const registerStan = async (req: Request, res: Response) => {
     try {
-        const { username, password, nama_stan, nama_pemilik, telp } = req.body;
+        const {
+            username,
+            password,
+            nama_stan,
+            nama_pemilik,
+            telp
+        } = req.body;
 
-        const existingUser = await prisma.user.findUnique({
-            where: { username },
-        });
-
-        if (existingUser) {
-            return res.status(400).json({ status: false, message: "Username already registered" });
+        const existing = await prisma.user.findUnique({ where: { username } });
+        if (existing) {
+            return res.status(400).json({ status: false, message: "Username already taken" });
         }
 
         const user = await prisma.user.create({
@@ -75,7 +85,7 @@ export const registerAdminStan = async (req: Request, res: Response) => {
             }
         });
 
-        const stan = await prisma.stan.create({
+        await prisma.stan.create({
             data: {
                 nama_stan,
                 nama_pemilik,
@@ -84,19 +94,68 @@ export const registerAdminStan = async (req: Request, res: Response) => {
             }
         });
 
-        return res.status(201).json({
+        const token = jwt.sign(
+            { id: user.id, role: user.role },
+            SECRET!,
+            { expiresIn: "1d" }
+        );
+        return res.status(200).json({
             status: true,
-            message: "Admin stan registered successfully",
-            data: {
-                user,
-                stan
+            message: "Register stan berhasil",
+            token,
+            user
+        });
+
+    } catch (error) {
+        return res.status(500).json({ status: false, message: `Error: ${error}` });
+    }
+};
+
+export const authentication = async (req: Request, res: Response) => {
+    try {
+        const { username, password } = req.body;
+
+        const findUser = await prisma.user.findFirst({
+            where: { username, password: md5(password) },
+            include: {
+                siswa: true,
+                stan: true
             }
         });
 
-    } catch (error: any) {
+        if (!findUser) {
+            return res.status(400).json({
+                status: false,
+                logged: false,
+                message: "Username or password is invalid"
+            });
+        }
+
+        const payload = {
+            id: findUser.id,
+            uuid: findUser.uuid,
+            username: findUser.username,
+            role: findUser.role
+        };
+
+        const token = jwt.sign(payload, SECRET!, { expiresIn: "1d" });
+
+        return res.status(200).json({
+            status: true,
+            logged: true,
+            message: "Login successful",
+            token,
+            data: {
+                ...payload,
+                siswa: findUser.siswa ?? null,
+                stan: findUser.stan ?? null
+            }
+        });
+
+    } catch (error) {
         return res.status(500).json({
             status: false,
-            message: error?.message || "Internal server error"
+            message: `Error: ${error}`
         });
     }
 };
