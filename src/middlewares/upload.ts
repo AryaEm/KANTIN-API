@@ -1,16 +1,22 @@
-import { Request } from "express";
+// import { Request } from "express";
 import multer from "multer";
-import { BASE_URL } from '../global'
+// import { BASE_URL } from '../global'
+import path from "path";
 
 
 const storage = multer.diskStorage({
-    destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
-        cb(null, `${BASE_URL}/public/foto_siswa/`) // LOKASI PENYIMPANAN FILE
+    destination: (req, file, cb) => {
+        const dest = path.join(__dirname, "../../public/foto_siswa");
+        console.log("SAVING TO:", dest);
+        cb(null, dest);
     },
-    filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
-        cb(null, `${new Date().getTime().toString()}-${file.originalname}`) //  NAMA FILE
+    filename: (req, file, cb) => {
+        const filename = Date.now() + "-" + file.originalname;
+        console.log("FILENAME:", filename);
+        cb(null, filename);
     }
-})
+});
+
 
 const uploadFile = multer({
     storage,

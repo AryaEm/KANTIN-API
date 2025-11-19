@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import Joi, { required } from 'joi'
+import Joi from 'joi'
 
 const registerDataSiswa = Joi.object({
     username: Joi.string().required(),
@@ -19,6 +19,15 @@ const updateDataSiswa = Joi.object({
     telp: Joi.string().optional(),
     foto: Joi.allow().optional(),
     jenis_kelamin: Joi.string().valid("laki_laki", "perempuan").optional(),
+    // user: Joi.optional()
+})
+
+const updateDataAdminStan = Joi.object({
+    username: Joi.string().optional(),
+    password: Joi.string().min(8).optional(),
+    nama_stan: Joi.string().optional(),
+    nama_pemilik: Joi.string().optional(),
+    telp: Joi.string().optional(),
 })
 
 const registerDataAdminStan = Joi.object({
@@ -48,6 +57,18 @@ export const verifyRegisterUser = (req: Request, res: Response, next: NextFuncti
 
 export const verifyUpdateUser = (req: Request, res: Response, next: NextFunction) => {
     const { error } = updateDataSiswa.validate(req.body, { abortEarly: false })
+
+    if (error) {
+        return res.status(400).json({
+            status: false,
+            message: error.details.map(it => it.message).join()
+        })
+    }
+    return next()
+}
+
+export const verifyUpdateAdminStan = (req: Request, res: Response, next: NextFunction) => {
+    const { error } = updateDataAdminStan.validate(req.body, { abortEarly: false })
 
     if (error) {
         return res.status(400).json({

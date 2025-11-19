@@ -18,7 +18,9 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
     try {
         const secretKey = SECRET || ""
         const decoded = verify(token, secretKey);
-        req.body.user = decoded as JwtPayload;
+
+        res.locals.user = decoded;
+
         next();
     } catch (error) {
         return res.status(401).json({ message: 'Invalid token.' });
@@ -27,7 +29,7 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
 
 export const verifyRole = (allowedRoles: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {
-        const user = req.body.user;
+        const user = res.locals.user;
 
         if (!user) {
             return res.status(403).json({ message: 'No user information available.' });

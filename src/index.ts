@@ -4,7 +4,8 @@ import swaggerJsDoc from 'swagger-jsdoc'
 import swaggerUi from 'swagger-ui-express'
 import path from 'path'
 
-import UserRoute from './routers/userRoute'
+import UserRoute from './routers/user_route'
+import StanRoute from './routers/stan_route'
 
 import { PORT } from './global'
 
@@ -43,6 +44,7 @@ const swaggerDocs = swaggerJsDoc(swaggerOptions)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs))
 
 app.use(`/user`, UserRoute)
+app.use(`/stan`, StanRoute)
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
