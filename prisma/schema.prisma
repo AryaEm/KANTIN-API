@@ -36,98 +36,98 @@ enum JenisKelamin {
 }
 
 model User {
-  id       Int     @id @default(autoincrement())
-  uuid     String  @default("")
-  username String  @default("") @unique
-  password String  @default("")
+  id       Int    @id @default(autoincrement())
+  uuid     String @default("")
+  username String @unique @default("")
+  password String @default("")
   role     Role
 
-  siswa    Siswa?
-  stan     Stan?
+  siswa Siswa?
+  stan  Stan?
 }
 
 model Siswa {
-  id            Int           @id @default(autoincrement())
-  nama_siswa    String        @default("")
-  alamat        String        @default("")
-  telp          String        @default("")
-  jenis_kelamin JenisKelamin  @default(laki_laki)
-  foto          String?       @default("")
+  id            Int          @id @default(autoincrement())
+  nama_siswa    String       @default("")
+  alamat        String       @default("")
+  telp          String       @default("")
+  jenis_kelamin JenisKelamin @default(laki_laki)
+  foto          String?      @default("")
 
-  id_user       Int           @unique
-  user          User         @relation(fields: [id_user], references: [id], onDelete: Cascade)
+  id_user Int  @unique
+  user    User @relation(fields: [id_user], references: [id], onDelete: Cascade)
 
-  transaksi     Transaksi[]
+  transaksi Transaksi[]
 }
 
 model Stan {
-  id           Int          @id @default(autoincrement())
-  nama_stan    String       @default("")
-  nama_pemilik String       @default("")
-  telp         String       @default("")
+  id           Int    @id @default(autoincrement())
+  nama_stan    String @default("")
+  nama_pemilik String @default("")
+  telp         String @default("")
 
-  id_user      Int          @unique
-  user         User        @relation(fields: [id_user], references: [id], onDelete: Cascade)
+  id_user Int  @unique
+  user    User @relation(fields: [id_user], references: [id], onDelete: Cascade)
 
-  menu         Menu[]
-  transaksi    Transaksi[]
+  menu      Menu[]
+  transaksi Transaksi[]
 }
 
 model Menu {
-  id              Int                @id @default(autoincrement())
-  nama_makanan    String             @default("")
-  harga           Int                @default(0)
-  jenis           JenisMenu          @default(makanan)
-  foto            String?            @default("")
-  deskripsi       String?            @default("") @db.Text
+  id           Int       @id @default(autoincrement())
+  nama_makanan String    @default("")
+  harga        Int       @default(0)
+  jenis        JenisMenu @default(makanan)
+  foto         String?   @default("")
+  deskripsi    String?   @default("") @db.Text
 
-  id_stan         Int
-  stan            Stan              @relation(fields: [id_stan], references: [id], onDelete: Cascade)
+  id_stan Int
+  stan    Stan @relation(fields: [id_stan], references: [id], onDelete: Cascade)
 
   menuDiskon      MenuDiskon[]
   detailTransaksi DetailTransaksi[]
 }
 
 model Transaksi {
-  id       Int                @id @default(autoincrement())
-  tanggal  DateTime           @default(now())
-  status   StatusTransaksi    @default(belum_dikonfirmasi)
+  id      Int             @id @default(autoincrement())
+  tanggal DateTime        @default(now())
+  status  StatusTransaksi @default(belum_dikonfirmasi)
 
   id_stan  Int
   id_siswa Int
 
-  stan     Stan              @relation(fields: [id_stan], references: [id], onDelete: Cascade)
-  siswa    Siswa             @relation(fields: [id_siswa], references: [id], onDelete: Cascade)
+  stan  Stan  @relation(fields: [id_stan], references: [id], onDelete: Cascade)
+  siswa Siswa @relation(fields: [id_siswa], references: [id], onDelete: Cascade)
 
-  detail   DetailTransaksi[]
+  detail DetailTransaksi[]
 }
 
 model DetailTransaksi {
-  id           Int        @id @default(autoincrement())
+  id           Int @id @default(autoincrement())
   id_transaksi Int
   id_menu      Int
-  qty          Int        @default(0)
-  harga_beli   Int        @default(0)
+  qty          Int @default(0)
+  harga_beli   Int @default(0)
 
-  transaksi    Transaksi @relation(fields: [id_transaksi], references: [id], onDelete: Cascade)
-  menu         Menu      @relation(fields: [id_menu], references: [id], onDelete: Cascade)
+  transaksi Transaksi @relation(fields: [id_transaksi], references: [id], onDelete: Cascade)
+  menu      Menu      @relation(fields: [id_menu], references: [id], onDelete: Cascade)
 }
 
 model Diskon {
-  id                Int           @id @default(autoincrement())
-  nama_diskon       String        @default("")
-  persentase_diskon Int           @default(0)
+  id                Int      @id @default(autoincrement())
+  nama_diskon       String   @default("")
+  persentase_diskon Int      @default(0)
   tanggal_awal      DateTime
   tanggal_akhir     DateTime
 
-  menuDiskon        MenuDiskon[]
+  menuDiskon MenuDiskon[]
 }
 
 model MenuDiskon {
-  id        Int     @id @default(autoincrement())
+  id        Int @id @default(autoincrement())
   id_menu   Int
   id_diskon Int
 
-  menu      Menu   @relation(fields: [id_menu], references: [id], onDelete: Cascade)
-  diskon    Diskon @relation(fields: [id_diskon], references: [id], onDelete: Cascade)
+  menu   Menu   @relation(fields: [id_menu], references: [id], onDelete: Cascade)
+  diskon Diskon @relation(fields: [id_diskon], references: [id], onDelete: Cascade)
 }

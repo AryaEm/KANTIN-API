@@ -1,5 +1,5 @@
 import express from "express"
-import { getAllStan } from "../controllers/stan"
+import { getAllStan } from "../controllers/menu"
 import { verifyRole, verifyToken } from "../middlewares/authorization"
 
 const app = express()

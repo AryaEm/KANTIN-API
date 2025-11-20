@@ -5,7 +5,7 @@ import swaggerUi from 'swagger-ui-express'
 import path from 'path'
 
 import UserRoute from './routers/user_route'
-import StanRoute from './routers/stan_route'
+import StanRoute from './routers/menu_route'
 
 import { PORT } from './global'
 

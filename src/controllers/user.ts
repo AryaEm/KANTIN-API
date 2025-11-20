@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import fs from "fs";
-import { BASE_URL } from "../global";
+// import { BASE_URL } from "../global";
 import md5 from "md5";
 import path from "path";
 
