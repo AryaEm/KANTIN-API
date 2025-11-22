@@ -5,7 +5,7 @@ import swaggerUi from 'swagger-ui-express'
 import path from 'path'
 
 import UserRoute from './routers/user_route'
-import StanRoute from './routers/menu_route'
+import MenuRoute from './routers/menu_route'
 
 import { PORT } from './global'
 
@@ -28,23 +28,23 @@ const swaggerOptions = {
         ],
         components: {
             securitySchemes: {
-                bearerAuth: { 
+                bearerAuth: {
                     type: 'http',
                     scheme: 'bearer',
-                    bearerFormat: 'JWT', 
+                    bearerFormat: 'JWT',
                 },
             },
         },
         security: [{ bearerAuth: [] }],
     },
-    apis: ['./src/routers/*.ts'], 
+    apis: ['./src/routers/*.ts'],
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs))
 
 app.use(`/user`, UserRoute)
-app.use(`/stan`, StanRoute)
+app.use(`/menu`, MenuRoute)
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

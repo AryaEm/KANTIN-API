@@ -23,6 +23,11 @@ enum JenisMenu {
   minuman
 }
 
+enum StatusMenu {
+  tersedia
+  habis
+}
+
 enum StatusTransaksi {
   belum_dikonfirmasi
   dimasak
@@ -74,12 +79,13 @@ model Stan {
 }
 
 model Menu {
-  id           Int       @id @default(autoincrement())
-  nama_makanan String    @default("")
-  harga        Int       @default(0)
-  jenis        JenisMenu @default(makanan)
-  foto         String?   @default("")
-  deskripsi    String?   @default("") @db.Text
+  id        Int        @id @default(autoincrement())
+  nama_menu String     @default("")
+  harga     Int        @default(0)
+  jenis     JenisMenu  @default(makanan)
+  foto      String?    @default("")
+  deskripsi String?    @default("") @db.Text
+  status    StatusMenu @default(tersedia)
 
   id_stan Int
   stan    Stan @relation(fields: [id_stan], references: [id], onDelete: Cascade)

@@ -1,6 +1,4 @@
-// import { Request } from "express";
 import multer from "multer";
-// import { BASE_URL } from '../global'
 import path from "path";
 
 

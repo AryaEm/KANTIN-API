@@ -261,7 +261,6 @@ export const updateFotoSiswa = async (req: Request, res: Response) => {
         if (req.file) {
             filename = req.file.filename;
 
-            // hanya buat oldPath kalau foto lama ada
             if (siswa.foto) {
                 const oldPath = path.join(__dirname, "../../public/foto_siswa", siswa.foto);
                 if (fs.existsSync(oldPath)) {
