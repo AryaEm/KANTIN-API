@@ -8,9 +8,9 @@ const app = express();
 app.use(express.json());
 
 app.get(`/stan`, [verifyToken, verifyRole(["siswa"])], getAllStan); // MENAMPILKAN SEMUA STAN
-app.get(`/menu-kantin`, [verifyToken, verifyRole(["siswa"])], getAllMenusForSiswa);
+app.get(`/menu-kantin`, [verifyToken, verifyRole(["siswa"])], getAllMenusForSiswa); // MENAMPILKAN MENU KANTIN (BISA FILTER KANTIN)
 
-app.post(`/add`, [verifyToken, verifyRole(["admin_stan"]), uploadMenuFile.single("foto"), verifyAddMenu], addMenu)
-app.put(`/update/:id`, [verifyToken, verifyRole(["admin_stan"]), uploadMenuFile.single("foto"), verifyUpdateMenu], updateMenu)
+app.post(`/add`, [verifyToken, verifyRole(["admin_stan"]), uploadMenuFile.single("foto"), verifyAddMenu], addMenu) // MENAMBAH MENU PADA KANTIN
+app.put(`/update/:id`, [verifyToken, verifyRole(["admin_stan"]), uploadMenuFile.single("foto"), verifyUpdateMenu], updateMenu) // EDIT / UPDATE MENU
 
 export default app;
