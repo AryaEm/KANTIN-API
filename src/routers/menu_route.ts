@@ -11,6 +11,6 @@ app.get(`/stan`, [verifyToken, verifyRole(["siswa"])], getAllStan); // MENAMPILK
 app.get(`/menu-kantin`, [verifyToken, verifyRole(["siswa"])], getAllMenusForSiswa); // MENAMPILKAN MENU KANTIN (BISA FILTER KANTIN)
 
 app.post(`/add`, [verifyToken, verifyRole(["admin_stan"]), uploadMenuFile.single("foto"), verifyAddMenu], addMenu) // MENAMBAH MENU PADA KANTIN
-app.put(`/update/:id`, [verifyToken, verifyRole(["admin_stan"]), uploadMenuFile.single("foto"), verifyUpdateMenu], updateMenu) // EDIT / UPDATE MENU
+app.put(`/update/:id`, [verifyToken, verifyRole(["admin_stan"]), uploadMenuFile.single("foto"), verifyUpdateMenu], updateMenu) // UPDATE MENU OLEH ADMIN/PEMILIK STAN
 
 export default app;
