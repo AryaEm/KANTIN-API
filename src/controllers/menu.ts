@@ -53,7 +53,6 @@ export const getAllMenusForSiswa = async (req: Request, res: Response) => {
       nama_stan = stan.nama_stan;
     }
 
-    // Query menu
     const menus = await prisma.menu.findMany({
       where: {
         id_stan: id_stan ? Number(id_stan) : undefined,
@@ -208,6 +207,108 @@ export const updateMenu = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.log(error);
+    return res.status(500).json({
+      status: false,
+      message: "Terjadi kesalahan server",
+      error: error.message,
+    });
+  }
+};
+
+export const getMenusForAdminStan = async (req: Request, res: Response) => {
+  try {
+    const authUser = res.locals.user;
+
+    // pastikan role admin stan
+    if (authUser.role !== "admin_stan") {
+      return res.status(403).json({
+        status: false,
+        message: "Akses ditolak.",
+      });
+    }
+
+    // cari stan milik user login
+    const stan = await prisma.stan.findFirst({
+      where: { id_user: authUser.id },
+    });
+
+    if (!stan) {
+      return res.status(404).json({
+        status: false,
+        message: "Stan tidak ditemukan untuk user ini.",
+      });
+    }
+
+    // ambil menu milik stan tersebut
+    const menus = await prisma.menu.findMany({
+      where: {
+        id_stan: stan.id,
+      },
+      orderBy: {
+        nama_menu: "asc",
+      },
+    });
+
+    return res.status(200).json({
+      status: true,
+      message: `Menu berhasil ditampilkan (${stan.nama_stan})`,
+      data: menus,
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: false,
+      message: "Terjadi kesalahan server",
+    });
+  }
+};
+
+export const deleteMenu = async (req: Request, res: Response) => {
+  try {
+    const id_menu = Number(req.params.id);
+    const authUser = res.locals.user;
+
+    const menu = await prisma.menu.findUnique({
+      where: { id: id_menu },
+    });
+
+    if (!menu) {
+      return res.status(404).json({
+        status: false,
+        message: "Menu tidak ditemukan",
+      });
+    }
+
+    const stanPemilik = await prisma.stan.findFirst({
+      where: { id_user: authUser.id },
+    });
+
+    if (!stanPemilik) {
+      return res.status(403).json({
+        status: false,
+        message: "User ini tidak memiliki stan.",
+      });
+    }
+
+    if (menu.id_stan !== stanPemilik.id) {
+      return res.status(403).json({
+        status: false,
+        message: "Tidak boleh menghapus menu milik stan lain.",
+      });
+    }
+
+    await prisma.menu.delete({
+      where: { id: id_menu },
+    });
+
+    return res.status(200).json({
+      status: true,
+      message: "Menu berhasil dihapus",
+    });
+
+  } catch (error: any) {
+    console.error(error);
     return res.status(500).json({
       status: false,
       message: "Terjadi kesalahan server",
