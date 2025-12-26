@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import fs from "fs";
-// import { BASE_URL } from "../global";
 import md5 from "md5";
 import path from "path";
 
@@ -37,26 +36,25 @@ export const getAllUsers = async (req: Request, res: Response) => {
 export const deleteUser = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const authUser = req.body.user;
+        const authUser = res.locals.user;
 
         const findUser = await prisma.user.findFirst({
             where: { id: Number(id) },
         });
 
         if (!findUser) {
-            return res.status(200).json({
+            return res.status(404).json({
                 status: false,
                 message: `User tidak ditemukan.`,
             });
         }
 
-        if (authUser.role !== findUser.role) {
+        if (authUser.id !== findUser.id) {
             return res.status(403).json({
                 status: false,
-                message: `Tidak diizinkan menghapus user dengan role ${findUser.role}.`,
+                message: "Tidak boleh menghapus user lain."
             });
         }
-
         const deleteUser = await prisma.user.delete({
             where: { id: Number(id) },
         });

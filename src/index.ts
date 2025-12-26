@@ -6,6 +6,7 @@ import path from 'path'
 
 import UserRoute from './routers/user_route'
 import MenuRoute from './routers/menu_route'
+import DiskonRoute from './routers/diskon_route'
 
 import { PORT } from './global'
 
@@ -45,6 +46,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs))
 
 app.use(`/user`, UserRoute)
 app.use(`/menu`, MenuRoute)
+app.use(`/diskon`, DiskonRoute)
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
