@@ -256,3 +256,281 @@ export const getActiveDiskon = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const createDiskon = async (req: Request, res: Response) => {
+    try {
+        const authUser = res.locals.user;
+
+        if (authUser.role !== "admin_stan") {
+            return res.status(403).json({
+                status: false,
+                message: "Akses ditolak.",
+            });
+        }
+
+        const { nama_diskon, persentase_diskon, tanggal_awal, tanggal_akhir } =
+            req.body;
+
+        const stan = await prisma.stan.findFirst({
+            where: { id_user: authUser.id },
+        });
+
+        if (!stan) {
+            return res.status(404).json({
+                status: false,
+                message: "Stan tidak ditemukan untuk admin ini.",
+            });
+        }
+
+        const diskon = await prisma.diskon.create({
+            data: {
+                nama_diskon,
+                persentase_diskon,
+                tanggal_awal: new Date(tanggal_awal),
+                tanggal_akhir: new Date(tanggal_akhir),
+                id_stan: stan.id,
+            },
+        });
+
+        return res.status(201).json({
+            status: true,
+            message: "Diskon berhasil dibuat",
+            data: diskon,
+        });
+
+    } catch (error: any) {
+        console.error(error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server",
+            error: error.message,
+        });
+    }
+};
+
+export const getAvailableDiskon = async (req: Request, res: Response) => {
+    try {
+        const authUser = res.locals.user;
+
+        if (authUser.role !== "admin_stan") {
+            return res.status(403).json({
+                status: false,
+                message: "Akses ditolak.",
+            });
+        }
+
+        const stan = await prisma.stan.findFirst({
+            where: { id_user: authUser.id },
+        });
+
+        if (!stan) {
+            return res.status(404).json({
+                status: false,
+                message: "Stan tidak ditemukan.",
+            });
+        }
+
+        const now = new Date();
+
+        const diskon = await prisma.diskon.findMany({
+            where: {
+                id_stan: stan.id,
+                tanggal_awal: { lte: now },
+                tanggal_akhir: { gte: now },
+            },
+            select: {
+                id: true,
+                nama_diskon: true,
+                persentase_diskon: true,
+                tanggal_awal: true,
+                tanggal_akhir: true,
+            },
+            orderBy: {
+                tanggal_akhir: "asc",
+            },
+        });
+
+        return res.status(200).json({
+            status: true,
+            message: "Daftar diskon tersedia",
+            data: diskon,
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server",
+        });
+    }
+};
+
+export const updateDiskon = async (req: Request, res: Response) => {
+    try {
+        const authUser = res.locals.user;
+        const diskonId = Number(req.params.id);
+
+        if (isNaN(diskonId)) {
+            return res.status(400).json({
+                status: false,
+                message: "ID diskon tidak valid.",
+            });
+        }
+
+        // 1. Cari stan milik admin yang login
+        const stan = await prisma.stan.findFirst({
+            where: {
+                id_user: authUser.id,
+            },
+        });
+
+        if (!stan) {
+            return res.status(404).json({
+                status: false,
+                message: "Stan tidak ditemukan.",
+            });
+        }
+
+        // 2. Pastikan diskon milik stan tersebut
+        const diskon = await prisma.diskon.findFirst({
+            where: {
+                id: diskonId,
+                id_stan: stan.id,
+            },
+        });
+
+        if (!diskon) {
+            return res.status(404).json({
+                status: false,
+                message: "Diskon tidak ditemukan atau bukan milik stan Anda.",
+            });
+        }
+
+        // 3. Tentukan tanggal final (support partial update)
+        const tanggalAwalFinal =
+            req.body.tanggal_awal ?? diskon.tanggal_awal;
+
+        const tanggalAkhirFinal =
+            req.body.tanggal_akhir ?? diskon.tanggal_akhir;
+
+        if (new Date(tanggalAkhirFinal) <= new Date(tanggalAwalFinal)) {
+            return res.status(400).json({
+                status: false,
+                message: "Tanggal akhir harus lebih besar dari tanggal awal.",
+            });
+        }
+
+        // 4. Bangun data update secara DINAMIS (hindari undefined)
+        const dataToUpdate: any = {};
+
+        if (req.body.nama_diskon !== undefined) {
+            dataToUpdate.nama_diskon = req.body.nama_diskon;
+        }
+
+        if (req.body.persentase !== undefined) {
+            dataToUpdate.persentase_diskon = req.body.persentase;
+        }
+
+        if (req.body.tanggal_awal !== undefined) {
+            dataToUpdate.tanggal_awal = new Date(req.body.tanggal_awal);
+        }
+
+        if (req.body.tanggal_akhir !== undefined) {
+            dataToUpdate.tanggal_akhir = new Date(req.body.tanggal_akhir);
+        }
+
+        // 5. Update diskon
+        const updatedDiskon = await prisma.diskon.update({
+            where: {
+                id: diskonId,
+            },
+            data: dataToUpdate,
+        });
+
+        return res.status(200).json({
+            status: true,
+            message: "Diskon berhasil diperbarui.",
+            data: {
+                id: updatedDiskon.id,
+                nama_diskon: updatedDiskon.nama_diskon,
+                persentase_diskon: updatedDiskon.persentase_diskon,
+                tanggal_awal: updatedDiskon.tanggal_awal,
+                tanggal_akhir: updatedDiskon.tanggal_akhir,
+            },
+        });
+
+    } catch (error) {
+        console.error("UPDATE DISKON ERROR:", error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server.",
+        });
+    }
+};
+
+export const getDiskonStatus = async (req: Request, res: Response) => {
+  try {
+    const authUser = res.locals.user;
+
+    // 1. Ambil stan milik admin login
+    const stan = await prisma.stan.findFirst({
+      where: {
+        id_user: authUser.id,
+      },
+    });
+
+    if (!stan) {
+      return res.status(404).json({
+        status: false,
+        message: "Stan tidak ditemukan.",
+      });
+    }
+
+    // 2. Ambil semua diskon milik stan (tanpa filter tanggal)
+    const diskonList = await prisma.diskon.findMany({
+      where: {
+        id_stan: stan.id,
+      },
+      orderBy: {
+        tanggal_awal: "desc",
+      },
+    });
+
+    const now = new Date();
+
+    // 3. Tambahkan status diskon
+    const result = diskonList.map((d) => {
+      let status: "belum_aktif" | "aktif" | "expired";
+
+      if (now < d.tanggal_awal) {
+        status = "belum_aktif";
+      } else if (now > d.tanggal_akhir) {
+        status = "expired";
+      } else {
+        status = "aktif";
+      }
+
+      return {
+        id: d.id,
+        nama_diskon: d.nama_diskon,
+        persentase_diskon: d.persentase_diskon,
+        tanggal_awal: d.tanggal_awal,
+        tanggal_akhir: d.tanggal_akhir,
+        status,
+      };
+    });
+
+    return res.status(200).json({
+      status: true,
+      message: "Daftar semua diskon milik stan",
+      data: result,
+    });
+
+  } catch (error) {
+    console.error("GET ALL DISKON ADMIN ERROR:", error);
+    return res.status(500).json({
+      status: false,
+      message: "Terjadi kesalahan server.",
+    });
+  }
+};

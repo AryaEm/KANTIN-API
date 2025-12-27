@@ -76,6 +76,7 @@ model Stan {
 
   menu      Menu[]
   transaksi Transaksi[]
+  diskon    Diskon[]
 }
 
 model Menu {
@@ -125,6 +126,9 @@ model Diskon {
   persentase_diskon Int      @default(0)
   tanggal_awal      DateTime
   tanggal_akhir     DateTime
+
+  id_stan Int
+  stan    Stan @relation(fields: [id_stan], references: [id], onDelete: Cascade)
 
   menuDiskon MenuDiskon[]
 }
