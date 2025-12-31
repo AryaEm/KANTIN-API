@@ -127,7 +127,7 @@ export const addMenu = async (req: Request, res: Response) => {
       data: {
         nama_menu,
         harga: Number(harga),
-        jenis: jenis.toLowerCase(),
+        jenis: jenis as JenisMenu,
         deskripsi,
         foto,
         id_stan: stan.id,

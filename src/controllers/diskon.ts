@@ -428,7 +428,7 @@ export const updateDiskon = async (req: Request, res: Response) => {
         }
 
         if (req.body.persentase !== undefined) {
-            dataToUpdate.persentase_diskon = req.body.persentase;
+            dataToUpdate.persentase_diskon = req.body.persentase_diskon;
         }
 
         if (req.body.tanggal_awal !== undefined) {
@@ -469,68 +469,288 @@ export const updateDiskon = async (req: Request, res: Response) => {
 };
 
 export const getDiskonStatus = async (req: Request, res: Response) => {
-  try {
-    const authUser = res.locals.user;
+    try {
+        const authUser = res.locals.user;
 
-    // 1. Ambil stan milik admin login
-    const stan = await prisma.stan.findFirst({
-      where: {
-        id_user: authUser.id,
-      },
-    });
+        // 1. Ambil stan milik admin login
+        const stan = await prisma.stan.findFirst({
+            where: {
+                id_user: authUser.id,
+            },
+        });
 
-    if (!stan) {
-      return res.status(404).json({
-        status: false,
-        message: "Stan tidak ditemukan.",
-      });
+        if (!stan) {
+            return res.status(404).json({
+                status: false,
+                message: "Stan tidak ditemukan.",
+            });
+        }
+
+        // 2. Ambil semua diskon milik stan (tanpa filter tanggal)
+        const diskonList = await prisma.diskon.findMany({
+            where: {
+                id_stan: stan.id,
+            },
+            orderBy: {
+                tanggal_awal: "desc",
+            },
+        });
+
+        const now = new Date();
+
+        const result = diskonList.map((d) => {
+            let status: "belum_aktif" | "aktif" | "expired";
+
+            if (now < d.tanggal_awal) {
+                status = "belum_aktif";
+            } else if (now > d.tanggal_akhir) {
+                status = "expired";
+            } else {
+                status = "aktif";
+            }
+
+            return {
+                id: d.id,
+                nama_diskon: d.nama_diskon,
+                persentase_diskon: d.persentase_diskon,
+                tanggal_awal: d.tanggal_awal,
+                tanggal_akhir: d.tanggal_akhir,
+                status,
+            };
+        });
+
+        return res.status(200).json({
+            status: true,
+            message: "Daftar semua diskon milik stan",
+            data: result,
+        });
+
+    } catch (error) {
+        console.error("GET ALL DISKON ADMIN ERROR:", error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server.",
+        });
     }
+};
 
-    // 2. Ambil semua diskon milik stan (tanpa filter tanggal)
-    const diskonList = await prisma.diskon.findMany({
-      where: {
-        id_stan: stan.id,
-      },
-      orderBy: {
-        tanggal_awal: "desc",
-      },
-    });
+export const deleteDiskon = async (req: Request, res: Response) => {
+    try {
+        const authUser = res.locals.user;
+        const diskonId = Number(req.params.id);
 
-    const now = new Date();
+        const stan = await prisma.stan.findFirst({
+            where: { id_user: authUser.id },
+        });
 
-    // 3. Tambahkan status diskon
-    const result = diskonList.map((d) => {
-      let status: "belum_aktif" | "aktif" | "expired";
+        if (!stan) {
+            return res.status(404).json({
+                status: false,
+                message: "Stan tidak ditemukan.",
+            });
+        }
 
-      if (now < d.tanggal_awal) {
-        status = "belum_aktif";
-      } else if (now > d.tanggal_akhir) {
-        status = "expired";
-      } else {
-        status = "aktif";
-      }
+        const diskon = await prisma.diskon.findFirst({
+            where: {
+                id: diskonId,
+                id_stan: stan.id,
+            },
+            include: {
+                menuDiskon: true,
+            },
+        });
 
-      return {
-        id: d.id,
-        nama_diskon: d.nama_diskon,
-        persentase_diskon: d.persentase_diskon,
-        tanggal_awal: d.tanggal_awal,
-        tanggal_akhir: d.tanggal_akhir,
-        status,
-      };
-    });
+        if (!diskon) {
+            return res.status(404).json({
+                status: false,
+                message: "Diskon tidak ditemukan atau bukan milik stan Anda.",
+            });
+        }
 
-    return res.status(200).json({
-      status: true,
-      message: "Daftar semua diskon milik stan",
-      data: result,
-    });
+        if (diskon.menuDiskon.length > 0) {
+            return res.status(400).json({
+                status: false,
+                message:
+                    "Diskon masih terpasang pada menu. Lepas diskon dari menu terlebih dahulu.",
+            });
+        }
 
-  } catch (error) {
-    console.error("GET ALL DISKON ADMIN ERROR:", error);
-    return res.status(500).json({
-      status: false,
-      message: "Terjadi kesalahan server.",
-    });
-  }
+        await prisma.diskon.delete({
+            where: { id: diskonId },
+        });
+
+        return res.status(200).json({
+            status: true,
+            message: "Diskon berhasil dihapus.",
+        });
+    } catch (error) {
+        console.error("DELETE DISKON ERROR:", error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server.",
+        });
+    }
+};
+
+export const pasangDiskon = async (req: Request, res: Response) => {
+    try {
+        const authUser = res.locals.user;
+        const idMenu = Number(req.params.id_menu);
+        const idDiskon = Number(req.params.id_diskon);
+
+        const stan = await prisma.stan.findFirst({
+            where: {
+                id_user: authUser.id,
+            },
+        });
+
+        if (!stan) {
+            return res.status(404).json({
+                status: false,
+                message: "Stan tidak ditemukan.",
+            });
+        }
+
+        const menu = await prisma.menu.findFirst({
+            where: {
+                id: idMenu,
+                id_stan: stan.id,
+            },
+        });
+
+        if (!menu) {
+            return res.status(404).json({
+                status: false,
+                message: "Menu tidak ditemukan atau bukan milik stan Anda.",
+            });
+        }
+
+        const diskon = await prisma.diskon.findFirst({
+            where: {
+                id: idDiskon,
+                id_stan: stan.id,
+            },
+        });
+
+        if (!diskon) {
+            return res.status(404).json({
+                status: false,
+                message: "Diskon tidak ditemukan atau bukan milik stan Anda.",
+            });
+        }
+
+        const existing = await prisma.menuDiskon.findFirst({
+            where: {
+                id_menu: idMenu,
+                id_diskon: idDiskon,
+            },
+        });
+
+        if (existing) {
+            return res.status(400).json({
+                status: false,
+                message: "Diskon sudah terpasang pada menu ini.",
+            });
+        }
+
+        await prisma.menuDiskon.create({
+            data: {
+                id_menu: idMenu,
+                id_diskon: idDiskon,
+            },
+        });
+
+        return res.status(201).json({
+            status: true,
+            message: "Diskon berhasil dipasang ke menu.",
+        });
+
+    } catch (error) {
+        console.error("PASANG DISKON ERROR:", error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server.",
+        });
+    }
+};
+
+export const lepasDiskon = async (req: Request, res: Response) => {
+    try {
+        const authUser = res.locals.user;
+        const idMenu = Number(req.params.id_menu);
+        const idDiskon = Number(req.params.id_diskon);
+
+        const stan = await prisma.stan.findFirst({
+            where: {
+                id_user: authUser.id,
+            },
+        });
+
+        if (!stan) {
+            return res.status(404).json({
+                status: false,
+                message: "Stan tidak ditemukan.",
+            });
+        }
+
+        const menu = await prisma.menu.findFirst({
+            where: {
+                id: idMenu,
+                id_stan: stan.id,
+            },
+        });
+
+        if (!menu) {
+            return res.status(404).json({
+                status: false,
+                message: "Menu tidak ditemukan atau bukan milik stan Anda.",
+            });
+        }
+
+        const diskon = await prisma.diskon.findFirst({
+            where: {
+                id: idDiskon,
+                id_stan: stan.id,
+            },
+        });
+
+        if (!diskon) {
+            return res.status(404).json({
+                status: false,
+                message: "Diskon tidak ditemukan atau bukan milik stan Anda.",
+            });
+        }
+
+        const menuDiskon = await prisma.menuDiskon.findFirst({
+            where: {
+                id_menu: idMenu,
+                id_diskon: idDiskon,
+            },
+        });
+
+        if (!menuDiskon) {
+            return res.status(400).json({
+                status: false,
+                message: "Diskon tidak sedang terpasang pada menu ini.",
+            });
+        }
+
+        await prisma.menuDiskon.delete({
+            where: {
+                id: menuDiskon.id,
+            },
+        });
+
+        return res.status(200).json({
+            status: true,
+            message: "Diskon berhasil dilepas dari menu.",
+        });
+
+    } catch (error) {
+        console.error("Lepas Diskon gagal:", error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server.",
+        });
+    }
 };
