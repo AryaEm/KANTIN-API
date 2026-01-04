@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { JenisMenu, PrismaClient } from "@prisma/client";
+import fs from "fs";
+import path from "path";
 
 const prisma = new PrismaClient({ errorFormat: "pretty" })
 
@@ -187,12 +189,23 @@ export const updateMenu = async (req: Request, res: Response) => {
     }
 
     // update data
+    const {
+      nama_menu,
+      harga,
+      jenis,
+      deskripsi,
+      status,
+    } = req.body;
+
     const updated = await prisma.menu.update({
       where: { id: id_menu },
       data: {
-        ...req.body,
-        harga: req.body.harga ? Number(req.body.harga) : menu.harga,
-      }
+        nama_menu: nama_menu ?? menu.nama_menu,
+        harga: harga !== undefined ? Number(harga) : menu.harga,
+        jenis: jenis ?? menu.jenis,
+        deskripsi: deskripsi ?? menu.deskripsi,
+        status: status ?? menu.status,
+      },
     });
 
     return res.status(200).json({
@@ -285,6 +298,18 @@ export const deleteMenu = async (req: Request, res: Response) => {
         status: false,
         message: "User ini tidak memiliki stan.",
       });
+    }
+
+    if (menu.foto) {
+      const fotoPath = path.join(
+        __dirname,
+        "../../public/foto_menu",
+        menu.foto
+      );
+
+      if (fs.existsSync(fotoPath)) {
+        fs.unlinkSync(fotoPath);
+      }
     }
 
     if (menu.id_stan !== stanPemilik.id) {

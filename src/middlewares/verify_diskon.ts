@@ -30,7 +30,7 @@ const updateDiscountSchema = Joi.object({
     persentase_diskon: Joi.number().min(0).max(100).optional(),
     tanggal_awal: Joi.date().optional(),
     tanggal_akhir: Joi.date().optional(),
-}).or("nama_diskon", "persentase", "tanggal_awal", "tanggal_akhir");
+}).or("nama_diskon", "persentase_diskon", "tanggal_awal", "tanggal_akhir");
 
 
 export const verifyCreateDiskon = (req: Request, res: Response, next: NextFunction) => {

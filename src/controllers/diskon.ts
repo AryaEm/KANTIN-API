@@ -427,7 +427,7 @@ export const updateDiskon = async (req: Request, res: Response) => {
             dataToUpdate.nama_diskon = req.body.nama_diskon;
         }
 
-        if (req.body.persentase !== undefined) {
+        if (req.body.persentase_diskon !== undefined) {
             dataToUpdate.persentase_diskon = req.body.persentase_diskon;
         }
 

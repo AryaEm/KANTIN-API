@@ -89,9 +89,10 @@ model Menu {
 }
 
 model Transaksi {
-  id      Int             @id @default(autoincrement())
-  tanggal DateTime        @default(now())
-  status  StatusTransaksi @default(belum_dikonfirmasi)
+  id             Int             @id @default(autoincrement())
+  kode_transaksi String          @unique
+  tanggal        DateTime        @default(now())
+  status         StatusTransaksi @default(belum_dikonfirmasi)
 
   id_stan  Int
   id_siswa Int
@@ -105,12 +106,19 @@ model Transaksi {
 model DetailTransaksi {
   id           Int @id @default(autoincrement())
   id_transaksi Int
-  id_menu      Int
-  qty          Int @default(0)
-  harga_beli   Int @default(0)
+
+  id_menu   Int?
+  nama_menu String
+
+  harga_asli           Int
+  persentase_diskon    Int @default(0)
+  harga_setelah_diskon Int
+
+  qty      Int
+  subtotal Int
 
   transaksi Transaksi @relation(fields: [id_transaksi], references: [id], onDelete: Cascade)
-  menu      Menu      @relation(fields: [id_menu], references: [id], onDelete: Cascade)
+  menu      Menu?     @relation(fields: [id_menu], references: [id], onDelete: SetNull)
 }
 
 model Diskon {
