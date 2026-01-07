@@ -18,8 +18,26 @@ const createOrderSchema = Joi.object({
         .required()
 });
 
+const updateOrderSchema = Joi.object({
+    status: Joi.string()
+        .valid("belum_dikonfirmasi", "proses", "selesai")
+        .required(),
+});
+
 export const verifyCreateOrder = (req: Request, res: Response, next: NextFunction) => {
     const { error } = createOrderSchema.validate(req.body, { abortEarly: false })
+
+    if (error) {
+        return res.status(400).json({
+            status: false,
+            message: error.details.map(it => it.message).join()
+        })
+    }
+    return next()
+}
+
+export const verifyUpdateOrder = (req: Request, res: Response, next: NextFunction) => {
+    const { error } = updateOrderSchema.validate(req.body, { abortEarly: false })
 
     if (error) {
         return res.status(400).json({

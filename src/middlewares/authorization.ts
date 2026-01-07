@@ -17,7 +17,10 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
 
     try {
         const secretKey = SECRET || ""
-        const decoded = verify(token, secretKey);
+        const decoded = verify(token, secretKey) as {
+            id: number
+            role: "admin_stan" | "siswa"
+        }
 
         res.locals.user = decoded;
 

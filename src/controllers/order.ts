@@ -1,7 +1,19 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, StatusTransaksi } from "@prisma/client";
+import dayjs from "dayjs";
+import isoWeek from "dayjs/plugin/isoWeek";
+import weekOfYear from "dayjs/plugin/weekOfYear";
+
+dayjs.extend(weekOfYear);
+dayjs.extend(isoWeek);
 
 const prisma = new PrismaClient({ errorFormat: "pretty" })
+
+const statusOrder: StatusTransaksi[] = [
+    "belum_dikonfirmasi",
+    "proses",
+    "selesai",
+];
 
 export const createTransaksi = async (req: Request, res: Response) => {
     try {
@@ -139,6 +151,537 @@ export const createTransaksi = async (req: Request, res: Response) => {
         return res.status(500).json({
             status: false,
             message: "Terjadi kesalahan server",
+        });
+    }
+};
+
+export const updateStatus = async (req: Request, res: Response) => {
+    try {
+        const id_transaksi = Number(req.params.id);
+        const { status } = req.body as { status: StatusTransaksi };
+
+        if (!statusOrder.includes(status)) {
+            return res.status(400).json({
+                status: false,
+                message: "Status tidak valid",
+            });
+        }
+
+        const transaksi = await prisma.transaksi.findUnique({
+            where: { id: id_transaksi },
+        });
+
+        if (!transaksi) {
+            return res.status(404).json({
+                status: false,
+                message: "Transaksi tidak ditemukan",
+            });
+        }
+
+        if (transaksi.status === "selesai") {
+            return res.status(400).json({
+                status: false,
+                message: "Transaksi yang sudah selesai tidak dapat diubah",
+            });
+        }
+
+        const currentIndex = statusOrder.indexOf(transaksi.status);
+        const newIndex = statusOrder.indexOf(status);
+
+        if (newIndex !== currentIndex + 1) {
+            return res.status(400).json({
+                status: false,
+                message: `Status harus berurutan dari '${transaksi.status}'`,
+            });
+        }
+
+        const updated = await prisma.transaksi.update({
+            where: { id: id_transaksi },
+            data: { status },
+        });
+
+        return res.status(200).json({
+            status: true,
+            message: "Status transaksi berhasil diperbarui",
+            data: updated,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server",
+        });
+    }
+};
+
+export const deleteOrder = async (req: Request, res: Response) => {
+    try {
+        const id_transaksi = Number(req.params.id);
+        const id_user = res.locals.user
+
+        if (isNaN(id_transaksi)) {
+            return res.status(400).json({
+                status: false,
+                message: "ID transaksi tidak valid",
+            });
+        }
+
+        // 1. Ambil siswa berdasarkan user login
+        const siswa = await prisma.siswa.findUnique({
+            where: { id_user: id_user.id },
+        });
+
+        if (!siswa) {
+            return res.status(403).json({
+                status: false,
+                message: "Akses ditolak",
+            });
+        }
+
+        // 2. Cari transaksi milik siswa tsb
+        const transaksi = await prisma.transaksi.findFirst({
+            where: {
+                id: id_transaksi,
+                id_siswa: siswa.id,
+            },
+        });
+
+        if (!transaksi) {
+            return res.status(404).json({
+                status: false,
+                message: "Transaksi tidak ditemukan",
+            });
+        }
+
+        // 3. Validasi status transaksi
+        if (transaksi.status !== StatusTransaksi.belum_dikonfirmasi) {
+            return res.status(400).json({
+                status: false,
+                message: "Transaksi tidak dapat dihapus karena sudah diproses",
+            });
+        }
+
+        // 4. Hapus transaksi (detail ikut kehapus via cascade)
+        await prisma.transaksi.delete({
+            where: { id: transaksi.id },
+        });
+
+        return res.json({
+            status: true,
+            message: "Transaksi berhasil dibatalkan",
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan pada server",
+        });
+    }
+};
+
+export const getStanHistory = async (req: Request, res: Response) => {
+    try {
+        const authUser = res.locals.user;
+
+        // 1️⃣ Ambil stan milik admin yang login
+        const stan = await prisma.stan.findFirst({
+            where: {
+                id_user: authUser.id,
+            },
+        });
+
+        if (!stan) {
+            return res.status(404).json({
+                status: false,
+                message: "Stan tidak ditemukan untuk user ini.",
+            });
+        }
+
+        // 2️⃣ Ambil seluruh transaksi milik stan
+        const transaksiList = await prisma.transaksi.findMany({
+            where: {
+                id_stan: stan.id,
+            },
+            orderBy: {
+                tanggal: "desc",
+            },
+            include: {
+                siswa: {
+                    select: {
+                        id: true,
+                        nama_siswa: true,
+                    },
+                },
+                detail: {
+                    select: {
+                        id_menu: true,
+                        nama_menu: true,
+                        harga_asli: true,
+                        persentase_diskon: true,
+                        harga_setelah_diskon: true,
+                        qty: true,
+                        subtotal: true,
+                    },
+                },
+            },
+        });
+
+        // 3️⃣ Bentuk response history (pakai snapshot, bukan menu real-time)
+        const data = transaksiList.map((trx) => {
+            const total_harga = trx.detail.reduce(
+                (sum, item) => sum + item.subtotal,
+                0
+            );
+
+            const total_item = trx.detail.reduce(
+                (sum, item) => sum + item.qty,
+                0
+            );
+
+            return {
+                id_transaksi: trx.id,
+                kode_transaksi: trx.kode_transaksi,
+                tanggal: trx.tanggal,
+                status: trx.status,
+
+                siswa: {
+                    id: trx.siswa.id,
+                    nama_siswa: trx.siswa.nama_siswa,
+                },
+
+                items: trx.detail.map((item) => ({
+                    id_menu: item.id_menu,
+                    nama_menu: item.nama_menu,
+                    qty: item.qty,
+                    harga_satuan: item.harga_asli,
+                    diskon_persen: item.persentase_diskon,
+                    harga_setelah_diskon: item.harga_setelah_diskon,
+                    subtotal: item.subtotal,
+                })),
+
+                total_item,
+                total_harga,
+            };
+        });
+
+        return res.status(200).json({
+            status: true,
+            message: `Riwayat transaksi untuk stan ${stan.nama_stan}`,
+            data,
+        });
+    } catch (error) {
+        console.error("GET STAN HISTORY ERROR:", error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server.",
+        });
+    }
+};
+
+export const getSiswaHistory = async (req: Request, res: Response) => {
+    try {
+        const authUser = res.locals.user;
+
+        // 1️⃣ Ambil data siswa berdasarkan user login
+        const siswa = await prisma.siswa.findFirst({
+            where: {
+                id_user: authUser.id,
+            },
+        });
+
+        if (!siswa) {
+            return res.status(404).json({
+                status: false,
+                message: "Data siswa tidak ditemukan.",
+            });
+        }
+
+        // 2️⃣ Ambil seluruh transaksi milik siswa
+        const transaksiList = await prisma.transaksi.findMany({
+            where: {
+                id_siswa: siswa.id,
+            },
+            orderBy: {
+                tanggal: "desc",
+            },
+            include: {
+                stan: {
+                    select: {
+                        id: true,
+                        nama_stan: true,
+                    },
+                },
+                detail: {
+                    select: {
+                        id_menu: true,
+                        nama_menu: true,
+                        harga_asli: true,
+                        persentase_diskon: true,
+                        harga_setelah_diskon: true,
+                        qty: true,
+                        subtotal: true,
+                    },
+                },
+            },
+        });
+
+        // 3️⃣ Bentuk response history siswa
+        const data = transaksiList.map((trx) => {
+            const total_harga = trx.detail.reduce(
+                (sum, item) => sum + item.subtotal,
+                0
+            );
+
+            const total_item = trx.detail.reduce(
+                (sum, item) => sum + item.qty,
+                0
+            );
+
+            return {
+                id_transaksi: trx.id,
+                kode_transaksi: trx.kode_transaksi,
+                tanggal: trx.tanggal,
+                status: trx.status,
+
+                stan: {
+                    id: trx.stan.id,
+                    nama_stan: trx.stan.nama_stan,
+                },
+
+                items: trx.detail.map((item) => ({
+                    id_menu: item.id_menu,
+                    nama_menu: item.nama_menu,
+                    qty: item.qty,
+                    harga_satuan: item.harga_asli,
+                    diskon_persen: item.persentase_diskon,
+                    harga_setelah_diskon: item.harga_setelah_diskon,
+                    subtotal: item.subtotal,
+                })),
+
+                total_item,
+                total_harga,
+            };
+        });
+
+        return res.status(200).json({
+            status: true,
+            message: "Riwayat transaksi siswa",
+            data,
+        });
+    } catch (error) {
+        console.error("GET SISWA HISTORY ERROR:", error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server.",
+        });
+    }
+};
+
+export const getIncome = async (req: Request, res: Response) => {
+    try {
+        const authUser = res.locals.user;
+
+        const { type, year, month, week } = req.query;
+
+        // 1️⃣ Ambil stan milik admin login
+        const stan = await prisma.stan.findFirst({
+            where: {
+                id_user: authUser.id,
+            },
+        });
+
+        if (!stan) {
+            return res.status(403).json({
+                status: false,
+                message: "User ini tidak memiliki stan",
+            });
+        }
+
+        // 2️⃣ Tentukan rentang tanggal
+        let startDate: Date | undefined;
+        let endDate: Date | undefined;
+
+        if (type === "year") {
+            if (!year) {
+                return res.status(400).json({
+                    status: false,
+                    message: "Parameter year wajib diisi",
+                });
+            }
+
+            startDate = dayjs(`${year}-01-01`).startOf("year").toDate();
+            endDate = dayjs(`${year}-12-31`).endOf("year").toDate();
+        }
+
+        if (type === "month") {
+            if (!year || !month) {
+                return res.status(400).json({
+                    status: false,
+                    message: "Parameter year dan month wajib diisi",
+                });
+            }
+
+            startDate = dayjs(`${year}-${month}-01`).startOf("month").toDate();
+            endDate = dayjs(`${year}-${month}-01`).endOf("month").toDate();
+        }
+
+        if (type === "week") {
+            if (!year || !week) {
+                return res.status(400).json({
+                    status: false,
+                    message: "Parameter year dan week wajib diisi",
+                });
+            }
+
+            startDate = dayjs()
+                .year(Number(year))
+                .isoWeek(Number(week))
+                .startOf("isoWeek")
+                .toDate();
+
+            endDate = dayjs()
+                .year(Number(year))
+                .isoWeek(Number(week))
+                .endOf("isoWeek")
+                .toDate();
+        }
+
+        // 3️⃣ Ambil transaksi selesai
+        const transaksi = await prisma.transaksi.findMany({
+            where: {
+                id_stan: stan.id,
+                status: "selesai",
+                ...(startDate &&
+                    endDate && {
+                    tanggal: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                }),
+            },
+            include: {
+                detail: {
+                    select: {
+                        subtotal: true,
+                    },
+                },
+            },
+        });
+
+        // 4️⃣ Hitung total income
+        let totalIncome = 0;
+
+        transaksi.forEach((trx) => {
+            trx.detail.forEach((d) => {
+                totalIncome += d.subtotal;
+            });
+        });
+
+        // 5️⃣ Response
+        return res.status(200).json({
+            status: true,
+            filter: {
+                type: type || "all",
+                year: year || null,
+                month: month || null,
+                week: week || null,
+            },
+            total_transaksi: transaksi.length,
+            total_income: totalIncome,
+        });
+    } catch (error: any) {
+        console.error(error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server",
+            error: error.message,
+        });
+    }
+};
+
+export const getOrder = async (req: Request, res: Response) => {
+    try {
+        const authUser = res.locals.user;
+        const { year, month, week } = req.query;
+
+        // 1. Ambil stan milik admin
+        const stan = await prisma.stan.findFirst({
+            where: { id_user: authUser.id },
+        });
+
+        if (!stan) {
+            return res.status(403).json({
+                status: false,
+                message: "Stan tidak ditemukan",
+            });
+        }
+
+        // 2. Tentukan filter tanggal
+        let startDate: Date | undefined;
+        let endDate: Date | undefined;
+        let filterType = "all";
+
+        if (year && month) {
+            filterType = "month";
+            startDate = dayjs(`${year}-${month}-01`).startOf("month").toDate();
+            endDate = dayjs(startDate).endOf("month").toDate();
+        } else if (year && week) {
+            filterType = "week";
+            startDate = dayjs()
+                .year(Number(year))
+                .week(Number(week))
+                .startOf("week")
+                .toDate();
+            endDate = dayjs(startDate).endOf("week").toDate();
+        } else if (year) {
+            filterType = "year";
+            startDate = dayjs(`${year}-01-01`).startOf("year").toDate();
+            endDate = dayjs(startDate).endOf("year").toDate();
+        }
+
+        // 3. Ambil transaksi
+        const transaksi = await prisma.transaksi.findMany({
+            where: {
+                id_stan: stan.id,
+                status: StatusTransaksi.selesai,
+                ...(startDate &&
+                    endDate && {
+                    tanggal: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                }),
+            },
+            include: {
+                detail: true,
+            },
+        });
+
+        // 4. Hitung total
+        const total_transaksi = transaksi.length;
+
+        const total_item = transaksi.reduce((total, trx) => {
+            const qty = trx.detail.reduce((sum, item) => sum + item.qty, 0);
+            return total + qty;
+        }, 0);
+
+        return res.status(200).json({
+            status: true,
+            filter: {
+                type: filterType,
+                year: year ? Number(year) : null,
+                month: month ? Number(month) : null,
+                week: week ? Number(week) : null,
+            },
+            total_transaksi,
+            total_item,
+        });
+    } catch (error: any) {
+        console.error(error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server",
+            error: error.message,
         });
     }
 };
