@@ -5,10 +5,10 @@ const registerDataSiswa = Joi.object({
     username: Joi.string().required(),
     password: Joi.string().min(8).required(),
     nama_siswa: Joi.string().required(),
-    alamat: Joi.string().required(),
-    telp: Joi.string().required(),
+    alamat: Joi.string().optional(),
+    telp: Joi.string().optional(),
     foto: Joi.allow().optional(),
-    jenis_kelamin: Joi.string().valid("laki_laki", "perempuan").required(),
+    jenis_kelamin: Joi.string().valid("laki_laki", "perempuan").optional(),
 })
 
 const updateDataSiswa = Joi.object({
@@ -22,6 +22,14 @@ const updateDataSiswa = Joi.object({
     // user: Joi.optional()
 })
 
+const registerDataAdminStan = Joi.object({
+    username: Joi.string().required(),
+    password: Joi.string().min(8).required(),
+    nama_stan: Joi.string().required(),
+    nama_pemilik: Joi.string().required(),
+    telp: Joi.string().optional(),
+})
+
 const updateDataAdminStan = Joi.object({
     username: Joi.string().optional(),
     password: Joi.string().min(8).optional(),
@@ -30,13 +38,6 @@ const updateDataAdminStan = Joi.object({
     telp: Joi.string().optional(),
 })
 
-const registerDataAdminStan = Joi.object({
-    username: Joi.string().required(),
-    password: Joi.string().min(8).required(),
-    nama_stan: Joi.string().required(),
-    nama_pemilik: Joi.string().required(),
-    telp: Joi.string().required(),
-})
 
 const loginUser = Joi.object({
     username: Joi.string().required(),

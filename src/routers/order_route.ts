@@ -1,6 +1,6 @@
 import express from "express"
 import { verifyRole, verifyToken } from "../middlewares/authorization"
-import { createTransaksi, deleteOrder, getIncome, getSiswaHistory, getStanHistory, updateStatus } from "../controllers/order"
+import { createTransaksi, deleteOrder, getIncome, getOrder, getSiswaHistory, getStanHistory, updateStatus } from "../controllers/order"
 import { verifyCreateOrder, verifyUpdateOrder } from "../middlewares/verify_order"
 
 const app = express()
@@ -13,7 +13,7 @@ app.put("/update/:id", [verifyToken, verifyRole(["admin_stan"]), verifyUpdateOrd
 app.delete("/delete/:id", [verifyToken, verifyRole(["siswa"])], deleteOrder);
 
 app.get("/report/income", [verifyToken, verifyRole(["admin_stan"])], getIncome); //report/income?type=month&year=2026&month=1
-// app.get("/report/order", [verifyToken, verifyRole(["admin_stan"])], getOrder); //report/order?type=month&year=2026&month=1
+app.get("/report/order", [verifyToken, verifyRole(["admin_stan"])], getOrder); //report/order?type=month&year=2026&month=1
 // app
 
 export default app  
