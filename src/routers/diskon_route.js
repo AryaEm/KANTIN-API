@@ -1,0 +1,22 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const authorization_1 = require("../middlewares/authorization");
+const diskon_1 = require("../controllers/diskon");
+const verify_diskon_1 = require("../middlewares/verify_diskon");
+const app = (0, express_1.default)();
+app.use(express_1.default.json());
+app.get("/stan/:id", [authorization_1.verifyToken, (0, authorization_1.verifyRole)(["siswa"])], diskon_1.getDiskonByStan);
+app.get("/all", [authorization_1.verifyToken, (0, authorization_1.verifyRole)(["admin_stan"])], diskon_1.getAllDiskon);
+app.get("/active", [authorization_1.verifyToken, (0, authorization_1.verifyRole)(["admin_stan", "siswa"])], diskon_1.getActiveDiskon);
+app.get("/available", [authorization_1.verifyToken, (0, authorization_1.verifyRole)(["admin_stan"])], diskon_1.getAvailableDiskon);
+app.get("/status", [authorization_1.verifyToken, (0, authorization_1.verifyRole)(["admin_stan"])], diskon_1.getDiskonStatus);
+app.post("/create", [authorization_1.verifyToken, (0, authorization_1.verifyRole)(["admin_stan"]), verify_diskon_1.verifyCreateDiskon], diskon_1.createDiskon);
+app.post("/menu/:id_menu/pasang-diskon/:id_diskon", [authorization_1.verifyToken, (0, authorization_1.verifyRole)(["admin_stan"])], diskon_1.pasangDiskon);
+app.delete("/menu/:id_menu/lepas-diskon/:id_diskon", [authorization_1.verifyToken, (0, authorization_1.verifyRole)(["admin_stan"])], diskon_1.lepasDiskon);
+app.put("/update/:id", [authorization_1.verifyToken, (0, authorization_1.verifyRole)(["admin_stan"]), verify_diskon_1.verifyUpdateDiskon], diskon_1.updateDiskon);
+app.delete("/delete/:id", [authorization_1.verifyToken, (0, authorization_1.verifyRole)(["admin_stan"])], diskon_1.deleteDiskon);
+exports.default = app;
