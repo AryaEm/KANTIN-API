@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { verify } from "jsonwebtoken";
-// import { SECRET } from "../global";
+// import { JWT_SECRET } from "../global";
 
 interface JwtPayload {
     id: string;
