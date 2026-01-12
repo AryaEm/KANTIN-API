@@ -1,10 +1,9 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-import fs from "fs";    
+import fs from "fs";
 import md5 from "md5";
 import path from "path";
+import { prisma } from "../lib/prisma";
 
-const prisma = new PrismaClient({ errorFormat: "pretty" })
 
 export const getAllUsers = async (req: Request, res: Response) => {
     try {
@@ -37,6 +36,12 @@ export const deleteUser = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const authUser = res.locals.user;
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
 
         const findUser = await prisma.user.findFirst({
             where: { id: Number(id) },
@@ -78,6 +83,12 @@ export const updateSiswa = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const authUser = res.locals.user;
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
 
         if (authUser.role !== "siswa") {
             return res.status(403).json({
@@ -155,6 +166,12 @@ export const updateAdminStan = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const authUser = res.locals.user;
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
 
         if (authUser.role !== "admin_stan") {
             return res.status(403).json({

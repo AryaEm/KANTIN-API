@@ -2,10 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import Joi from "joi";
 
 const createOrderSchema = Joi.object({
-    id_stan: Joi.number().required().messages({
-        "any.required": "ID stan wajib diisi",
-        "number.base": "ID stan harus berupa angka",
-    }),
     items: Joi.array()
         .items(
             Joi.object({
@@ -22,6 +18,10 @@ const updateOrderSchema = Joi.object({
     status: Joi.string()
         .valid("belum_dikonfirmasi", "proses", "selesai")
         .required(),
+});
+
+const rejectOrderSchema = Joi.object({
+    reason: Joi.string().max(255).optional()
 });
 
 export const verifyCreateOrder = (req: Request, res: Response, next: NextFunction) => {
@@ -47,3 +47,20 @@ export const verifyUpdateOrder = (req: Request, res: Response, next: NextFunctio
     }
     return next()
 }
+
+export const verifyRejectOrder = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+    const { error } = rejectOrderSchema.validate(req.body, { abortEarly: false });
+
+    if (error) {
+        return res.status(400).json({
+            status: false,
+            message: error.details.map(it => it.message).join(", "),
+        });
+    }
+
+    next();
+};

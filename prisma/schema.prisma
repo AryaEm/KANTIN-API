@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -26,6 +26,7 @@ enum StatusTransaksi {
   belum_dikonfirmasi
   proses
   selesai
+  ditolak
 }
 
 enum JenisKelamin {
@@ -35,9 +36,9 @@ enum JenisKelamin {
 
 model User {
   id       Int    @id @default(autoincrement())
-  uuid     String @default("")
-  username String @unique @default("")
-  password String @default("")
+  uuid     String @unique @default(uuid())
+  username String @unique
+  password String
   role     Role
 
   siswa Siswa?
@@ -46,11 +47,11 @@ model User {
 
 model Siswa {
   id            Int          @id @default(autoincrement())
-  nama_siswa    String       @default("")
-  alamat        String       @default("")
-  telp          String       @default("")
+  nama_siswa    String
+  alamat        String
+  telp          String
   jenis_kelamin JenisKelamin @default(laki_laki)
-  foto          String?      @default("")
+  foto          String?
 
   id_user Int  @unique
   user    User @relation(fields: [id_user], references: [id], onDelete: Cascade)
@@ -74,11 +75,11 @@ model Stan {
 
 model Menu {
   id        Int        @id @default(autoincrement())
-  nama_menu String     @default("")
+  nama_menu String     
   harga     Int        @default(0)
   jenis     JenisMenu  @default(makanan)
-  foto      String?    @default("")
-  deskripsi String?    @default("") @db.Text
+  foto      String?    
+  deskripsi String?    @db.Text
   status    StatusMenu @default(tersedia)
 
   id_stan Int
@@ -90,7 +91,7 @@ model Menu {
 
 model Transaksi {
   id             Int             @id @default(autoincrement())
-  kode_transaksi String          @unique
+  kode_transaksi String?         @unique
   tanggal        DateTime        @default(now())
   status         StatusTransaksi @default(belum_dikonfirmasi)
 
@@ -123,7 +124,7 @@ model DetailTransaksi {
 
 model Diskon {
   id                Int      @id @default(autoincrement())
-  nama_diskon       String   @default("")
+  nama_diskon       String   
   persentase_diskon Int      @default(0)
   tanggal_awal      DateTime
   tanggal_akhir     DateTime

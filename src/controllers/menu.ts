@@ -1,9 +1,8 @@
 import { Request, Response } from "express";
-import { JenisMenu, PrismaClient } from "@prisma/client";
+import { JenisMenu } from "@prisma/client";
 import fs from "fs";
 import path from "path";
-
-const prisma = new PrismaClient({ errorFormat: "pretty" })
+import { prisma } from "../lib/prisma";
 
 export const getAllStan = async (req: Request, res: Response) => {
   try {
@@ -11,7 +10,8 @@ export const getAllStan = async (req: Request, res: Response) => {
       select: {
         id: true,
         nama_stan: true,
-        nama_pemilik: true
+        nama_pemilik: true,
+        telp: true
       }
     });
 
@@ -28,6 +28,92 @@ export const getAllStan = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const getMenuByStanId = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const now = new Date();
+
+    const stan = await prisma.stan.findUnique({
+      where: { id: Number(id) },
+      select: {
+        id: true,
+        nama_stan: true,
+        nama_pemilik: true,
+        telp: true,
+        menu: {
+          where: {
+            status: "tersedia",
+          },
+          select: {
+            id: true,
+            nama_menu: true,
+            deskripsi: true,
+            jenis: true,
+            harga: true,
+            foto: true,
+            menuDiskon: {
+              select: {
+                diskon: {
+                  select: {
+                    persentase_diskon: true,
+                    tanggal_awal: true,
+                    tanggal_akhir: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!stan) {
+      return res.status(404).json({
+        status: false,
+        message: "Stan tidak ditemukan",
+      });
+    }
+
+    const data = {
+      id: stan.id,
+      name: stan.nama_stan,
+      owner: stan.nama_pemilik,
+      telp: stan.telp,
+      menus: stan.menu.map((menu) => {
+        const activeDiskon = menu.menuDiskon.find(
+          (md) =>
+            now >= md.diskon.tanggal_awal &&
+            now <= md.diskon.tanggal_akhir
+        );
+
+        return {
+          id: menu.id,
+          name: menu.nama_menu,
+          description: menu.deskripsi,
+          jenis_menu: menu.jenis,
+          price: menu.harga,
+          image: menu.foto,
+          discount: activeDiskon
+            ? activeDiskon.diskon.persentase_diskon
+            : 0,
+        };
+      }),
+    };
+
+    return res.status(200).json({
+      status: true,
+      data,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: false,
+      message: "Terjadi kesalahan server",
+    });
+  }
+};
+
 
 export const getAllMenusForSiswa = async (req: Request, res: Response) => {
   try {
@@ -107,6 +193,12 @@ export const getAllMenusForSiswa = async (req: Request, res: Response) => {
 export const addMenu = async (req: Request, res: Response) => {
   try {
     const user = res.locals.user;
+    if (!user) {
+      return res.status(401).json({
+        status: false,
+        message: "Unauthorized",
+      });
+    }
     const { nama_menu, harga, jenis, deskripsi } = req.body;
 
     const stan = await prisma.stan.findFirst({
@@ -127,11 +219,11 @@ export const addMenu = async (req: Request, res: Response) => {
 
     const newMenu = await prisma.menu.create({
       data: {
-        nama_menu,
+        nama_menu: nama_menu ?? "",
         harga: Number(harga),
         jenis: jenis as JenisMenu,
-        deskripsi,
-        foto,
+        deskripsi: deskripsi ?? "",
+        foto: foto ?? "",
         id_stan: stan.id,
       },
     });
@@ -144,7 +236,7 @@ export const addMenu = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.log(error);
-    return res.status(500).json({
+    return res.status(400).json({
       status: false,
       message: "Terjadi kesalahan server",
       error: String(error),
@@ -155,7 +247,13 @@ export const addMenu = async (req: Request, res: Response) => {
 export const updateMenu = async (req: Request, res: Response) => {
   try {
     const id_menu = Number(req.params.id);
-    const authUser = res.locals.user; // ambil dari token JWT
+    const authUser = res.locals.user;
+    if (!authUser) {
+      return res.status(401).json({
+        status: false,
+        message: "Unauthorized",
+      });
+    }
 
     // cek menu ada atau nggak
     const menu = await prisma.menu.findUnique({
@@ -227,16 +325,13 @@ export const updateMenu = async (req: Request, res: Response) => {
 export const getMenusForAdminStan = async (req: Request, res: Response) => {
   try {
     const authUser = res.locals.user;
-
-    // pastikan role admin stan
-    if (authUser.role !== "admin_stan") {
-      return res.status(403).json({
+    if (!authUser) {
+      return res.status(401).json({
         status: false,
-        message: "Akses ditolak.",
+        message: "Unauthorized",
       });
     }
 
-    // cari stan milik user login
     const stan = await prisma.stan.findFirst({
       where: { id_user: authUser.id },
     });
@@ -277,6 +372,12 @@ export const deleteMenu = async (req: Request, res: Response) => {
   try {
     const id_menu = Number(req.params.id);
     const authUser = res.locals.user;
+    if (!authUser) {
+      return res.status(401).json({
+        status: false,
+        message: "Unauthorized",
+      });
+    }
 
     const menu = await prisma.menu.findUnique({
       where: { id: id_menu },
@@ -300,6 +401,13 @@ export const deleteMenu = async (req: Request, res: Response) => {
       });
     }
 
+    if (menu.id_stan !== stanPemilik.id) {
+      return res.status(403).json({
+        status: false,
+        message: "Tidak boleh menghapus menu milik stan lain.",
+      });
+    }
+
     if (menu.foto) {
       const fotoPath = path.join(
         __dirname,
@@ -310,13 +418,6 @@ export const deleteMenu = async (req: Request, res: Response) => {
       if (fs.existsSync(fotoPath)) {
         fs.unlinkSync(fotoPath);
       }
-    }
-
-    if (menu.id_stan !== stanPemilik.id) {
-      return res.status(403).json({
-        status: false,
-        message: "Tidak boleh menghapus menu milik stan lain.",
-      });
     }
 
     await prisma.menu.delete({

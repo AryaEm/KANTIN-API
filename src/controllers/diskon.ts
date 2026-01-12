@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../lib/prisma";
 
-const prisma = new PrismaClient({ errorFormat: "pretty" })
 
 export const getDiskonByStan = async (req: Request, res: Response) => {
     try {
@@ -75,14 +74,12 @@ export const getDiskonByStan = async (req: Request, res: Response) => {
 export const getAllDiskon = async (req: Request, res: Response) => {
     try {
         const authUser = res.locals.user;
-
-        // guard tambahan (defensive)
-        // if (authUser.role !== "admin_stan") {
-        //   return res.status(403).json({
-        //     status: false,
-        //     message: "Akses ditolak.",
-        //   });
-        // }
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
 
         const stan = await prisma.stan.findFirst({
             where: { id_user: authUser.id },
@@ -143,6 +140,12 @@ export const getAllDiskon = async (req: Request, res: Response) => {
 export const getActiveDiskon = async (req: Request, res: Response) => {
     try {
         const authUser = res.locals.user;
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
         const role = authUser.role;
 
         const now = new Date();
@@ -260,6 +263,12 @@ export const getActiveDiskon = async (req: Request, res: Response) => {
 export const createDiskon = async (req: Request, res: Response) => {
     try {
         const authUser = res.locals.user;
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
 
         if (authUser.role !== "admin_stan") {
             return res.status(403).json({
@@ -284,8 +293,8 @@ export const createDiskon = async (req: Request, res: Response) => {
 
         const diskon = await prisma.diskon.create({
             data: {
-                nama_diskon,
-                persentase_diskon,
+                nama_diskon: nama_diskon ?? "",
+                persentase_diskon: persentase_diskon ?? 0,
                 tanggal_awal: new Date(tanggal_awal),
                 tanggal_akhir: new Date(tanggal_akhir),
                 id_stan: stan.id,
@@ -368,6 +377,12 @@ export const getAvailableDiskon = async (req: Request, res: Response) => {
 export const updateDiskon = async (req: Request, res: Response) => {
     try {
         const authUser = res.locals.user;
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
         const diskonId = Number(req.params.id);
 
         if (isNaN(diskonId)) {
@@ -471,6 +486,12 @@ export const updateDiskon = async (req: Request, res: Response) => {
 export const getDiskonStatus = async (req: Request, res: Response) => {
     try {
         const authUser = res.locals.user;
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
 
         // 1. Ambil stan milik admin login
         const stan = await prisma.stan.findFirst({
@@ -537,6 +558,12 @@ export const getDiskonStatus = async (req: Request, res: Response) => {
 export const deleteDiskon = async (req: Request, res: Response) => {
     try {
         const authUser = res.locals.user;
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
         const diskonId = Number(req.params.id);
 
         const stan = await prisma.stan.findFirst({
@@ -595,6 +622,12 @@ export const deleteDiskon = async (req: Request, res: Response) => {
 export const pasangDiskon = async (req: Request, res: Response) => {
     try {
         const authUser = res.locals.user;
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
         const idMenu = Number(req.params.id_menu);
         const idDiskon = Number(req.params.id_diskon);
 
@@ -677,6 +710,12 @@ export const pasangDiskon = async (req: Request, res: Response) => {
 export const lepasDiskon = async (req: Request, res: Response) => {
     try {
         const authUser = res.locals.user;
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
         const idMenu = Number(req.params.id_menu);
         const idDiskon = Number(req.params.id_diskon);
 

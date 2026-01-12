@@ -1,11 +1,9 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
 import md5 from "md5";
 import { SECRET } from "../global";
 import jwt from "jsonwebtoken";
-
-const prisma = new PrismaClient({ errorFormat: "pretty" })
+import { prisma } from "../lib/prisma";
 
 export const registerSiswa = async (req: Request, res: Response) => {
     try {
@@ -32,10 +30,10 @@ export const registerSiswa = async (req: Request, res: Response) => {
             }
         });
 
-        await prisma.siswa.create({
+        const siswa = await prisma.siswa.create({
             data: {
                 nama_siswa,
-                alamat,
+                alamat: alamat ?? "",
                 telp,
                 jenis_kelamin,
                 id_user: user.id
@@ -52,11 +50,12 @@ export const registerSiswa = async (req: Request, res: Response) => {
             status: true,
             message: "Register siswa berhasil",
             token,
-            user
+            user,
+            siswa
         });
 
     } catch (error) {
-        return res.status(500).json({ status: false, message: `Error: ${error}` });
+        return res.status(400).json({ status: false, message: `Error: ${error}` });
     }
 };
 
@@ -85,11 +84,11 @@ export const registerStan = async (req: Request, res: Response) => {
             }
         });
 
-        await prisma.stan.create({
+        const stan = await prisma.stan.create({
             data: {
-                nama_stan,
-                nama_pemilik,
-                telp,
+                nama_stan: nama_stan ?? "",
+                nama_pemilik: nama_pemilik ?? "",
+                telp: telp ?? "",
                 id_user: user.id
             }
         });
@@ -103,11 +102,12 @@ export const registerStan = async (req: Request, res: Response) => {
             status: true,
             message: "Register stan berhasil",
             token,
-            user
+            user,
+            stan
         });
 
     } catch (error) {
-        return res.status(500).json({ status: false, message: `Error: ${error}` });
+        return res.status(400).json({ status: false, message: `Error: ${error}` });
     }
 };
 
@@ -153,7 +153,7 @@ export const authentication = async (req: Request, res: Response) => {
         });
 
     } catch (error) {
-        return res.status(500).json({
+        return res.status(400).json({
             status: false,
             message: `Error: ${error}`
         });

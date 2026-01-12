@@ -20,7 +20,14 @@ const updateDataMenu = Joi.object({
 })
 
 export const verifyAddMenu = (req: Request, res: Response, next: NextFunction) => {
-    const { error } = addDataMenu.validate(req.body, { abortEarly: false })
+    console.log("=== VERIFY ADD MENU ===");
+    console.log("req.body:", req.body);
+    console.log("req.file:", req.file);
+
+    const { error, value } = addDataMenu.validate(req.body, {
+        abortEarly: false,
+        convert: true,
+    })
 
     if (error) {
         return res.status(400).json({
@@ -28,6 +35,7 @@ export const verifyAddMenu = (req: Request, res: Response, next: NextFunction) =
             message: error.details.map(it => it.message).join()
         })
     }
+    req.body = value;
     return next()
 }
 

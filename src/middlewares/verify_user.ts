@@ -5,8 +5,8 @@ const registerDataSiswa = Joi.object({
     username: Joi.string().required(),
     password: Joi.string().min(8).required(),
     nama_siswa: Joi.string().required(),
-    alamat: Joi.string().optional(),
-    telp: Joi.string().optional(),
+    alamat: Joi.string().allow("").optional(),
+    telp: Joi.string().required(),
     foto: Joi.allow().optional(),
     jenis_kelamin: Joi.string().valid("laki_laki", "perempuan").optional(),
 })
@@ -19,7 +19,6 @@ const updateDataSiswa = Joi.object({
     telp: Joi.string().optional(),
     foto: Joi.allow().optional(),
     jenis_kelamin: Joi.string().valid("laki_laki", "perempuan").optional(),
-    // user: Joi.optional()
 })
 
 const registerDataAdminStan = Joi.object({

@@ -1,13 +1,16 @@
 import express from "express"
 import { verifyRole, verifyToken } from "../middlewares/authorization"
-import { createTransaksi, deleteOrder, getIncome, getOrder, getSiswaHistory, getStanHistory, updateStatus } from "../controllers/order"
+import { createTransaksi, deleteOrder, getIncome, getOrder, getPendingTransactionCount, getSiswaHistory, getStanHistory, getStanHistorySelesai, rejectOrder, updateStatus } from "../controllers/order"
 import { verifyCreateOrder, verifyUpdateOrder } from "../middlewares/verify_order"
 
 const app = express()
 app.use(express.json())
 
 app.get("/history/stan", [verifyToken, verifyRole(["admin_stan"])], getStanHistory)
+app.get("/history/stan/selesai", [verifyToken, verifyRole(["admin_stan"])], getStanHistorySelesai)
 app.get("/history/siswa", [verifyToken, verifyRole(["siswa"])], getSiswaHistory)
+app.get("/pending", [verifyToken, verifyRole(["admin_stan"])], getPendingTransactionCount)
+app.patch("/:id/reject", verifyToken, verifyRole(["admin_stan"]), rejectOrder);
 app.post("/", [verifyToken, verifyRole(["siswa"]), verifyCreateOrder], createTransaksi);
 app.put("/update/:id", [verifyToken, verifyRole(["admin_stan"]), verifyUpdateOrder], updateStatus);
 app.delete("/delete/:id", [verifyToken, verifyRole(["siswa"])], deleteOrder);
