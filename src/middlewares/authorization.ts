@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { verify } from "jsonwebtoken";
-import { SECRET } from "../global";
+// import { SECRET } from "../global";
 
 interface JwtPayload {
     id: string;
@@ -9,6 +9,7 @@ interface JwtPayload {
 }
 
 export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
+    console.log("JWT_SECRET in middleware:", process.env.JWT_SECRET);
     const token = req.headers.authorization?.split(' ')[1];
 
     if (!token) {
@@ -16,7 +17,7 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
     }
 
     try {
-        const secretKey = process.env.SECRET
+        const secretKey = process.env.JWT_SECRET
         if (!secretKey) {
             return res.status(500).json({ message: "Server misconfiguration" });
         }
