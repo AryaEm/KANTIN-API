@@ -525,7 +525,7 @@ export const getSiswaHistory = async (req: Request, res: Response) => {
                 message: "Data siswa tidak ditemukan.",
             });
         }
-        
+
 
         const transaksiList = await prisma.transaksi.findMany({
             where: {
@@ -633,7 +633,7 @@ export const getSiswaOngoingOrder = async (req: Request, res: Response) => {
             where: {
                 id_siswa: siswa.id,
                 status: {
-                    in: ["belum_dikonfirmasi", "ditolak"],
+                    in: ["belum_dikonfirmasi", "proses", "ditolak"],
 
                 },
             },
@@ -957,9 +957,7 @@ export const getPendingTransactionCount = async (req: Request, res: Response) =>
         const pending_count = await prisma.transaksi.count({
             where: {
                 id_stan: stan.id,
-                status: {
-                    in: ["belum_dikonfirmasi", "proses", "ditolak"]
-                } ,
+                status: "belum_dikonfirmasi"
             },
         });
 
