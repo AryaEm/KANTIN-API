@@ -1,7 +1,7 @@
 import express from "express";
 import { addMenu, deleteMenu, getAllMenusForSiswa, getAllStan, getMenuByStanId, getMenusForAdminStan, updateMenu } from "../controllers/menu";
 import { verifyRole, verifyToken } from "../middlewares/authorization";
-import uploadMenuFile from "../middlewares/menu_upload";
+import upload from "../middlewares/menu_upload";
 import { verifyAddMenu, verifyUpdateMenu } from "../middlewares/verify_menu";
 
 const app = express();
@@ -12,8 +12,8 @@ app.get("/menu-kantin", [verifyToken, verifyRole(["siswa"])], getAllMenusForSisw
 app.get("/menu-admin", [verifyToken, verifyRole(["admin_stan"])], getMenusForAdminStan); // MENAMPILKAN MENU PER KANTIN (SESUAI USER LOGIN) 
 app.get("/stan/:id/menu", [verifyToken, verifyRole(["siswa"])], getMenuByStanId); // MENAMPILKAN MENU PER KANTIN (SESUAI STAN YANG DIPILIH SISWA) 
 
-app.post("/add", [verifyToken, verifyRole(["admin_stan"]), uploadMenuFile.single("foto"), verifyAddMenu], addMenu) // MENAMBAH MENU PADA KANTIN
-app.put("/update/:id", [verifyToken, verifyRole(["admin_stan"]), uploadMenuFile.single("foto"), verifyUpdateMenu], updateMenu) // UPDATE MENU OLEH ADMIN/PEMILIK STAN
+app.post("/add", [verifyToken, verifyRole(["admin_stan"]), upload.single("foto"), verifyAddMenu], addMenu) // MENAMBAH MENU PADA KANTIN
+app.put("/update/:id", [verifyToken, verifyRole(["admin_stan"]), upload.single("foto"), verifyUpdateMenu], updateMenu) // UPDATE MENU OLEH ADMIN/PEMILIK STAN
 app.delete("/delete/:id", [verifyToken, verifyRole(["admin_stan"])], deleteMenu) // MENGHAPUS MENU PER STAN SESUAI USER LOGIN
 
 export default app;

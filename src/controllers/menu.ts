@@ -3,6 +3,8 @@ import { JenisMenu } from "@prisma/client";
 import fs from "fs";
 import path from "path";
 import { prisma } from "../lib/prisma";
+import { supabase } from "../lib/supabase";
+import { randomUUID } from "crypto";
 
 export const getAllStan = async (req: Request, res: Response) => {
   try {
@@ -214,7 +216,25 @@ export const addMenu = async (req: Request, res: Response) => {
 
     let foto = "";
     if (req.file) {
-      foto = req.file.filename;
+      const ext = req.file.originalname.split(".").pop();
+      const fileName = `${randomUUID()}.${ext}`;
+
+      const { error } = await supabase.storage
+        .from("foto_menu")
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false,
+        });
+
+      if (error) {
+        return res.status(500).json({
+          status: false,
+          message: "Gagal upload foto",
+          error: error.message,
+        });
+      }
+
+      foto = `${process.env.SUPABASE_URL}/storage/v1/object/public/foto_menu/${fileName}`;
     }
 
     const newMenu = await prisma.menu.create({

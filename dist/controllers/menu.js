@@ -7,6 +7,8 @@ exports.deleteMenu = exports.getMenusForAdminStan = exports.updateMenu = exports
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const prisma_1 = require("../lib/prisma");
+const supabase_1 = require("../lib/supabase");
+const crypto_1 = require("crypto");
 const getAllStan = async (req, res) => {
     try {
         const data = await prisma_1.prisma.stan.findMany({
@@ -194,7 +196,22 @@ const addMenu = async (req, res) => {
         }
         let foto = "";
         if (req.file) {
-            foto = req.file.filename;
+            const ext = req.file.originalname.split(".").pop();
+            const fileName = `${(0, crypto_1.randomUUID)()}.${ext}`;
+            const { error } = await supabase_1.supabase.storage
+                .from("foto_menu")
+                .upload(fileName, req.file.buffer, {
+                contentType: req.file.mimetype,
+                upsert: false,
+            });
+            if (error) {
+                return res.status(500).json({
+                    status: false,
+                    message: "Gagal upload foto",
+                    error: error.message,
+                });
+            }
+            foto = `${process.env.SUPABASE_URL}/storage/v1/object/public/foto_menu/${fileName}`;
         }
         const newMenu = await prisma_1.prisma.menu.create({
             data: {

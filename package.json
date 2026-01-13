@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.19.1",
+    "@supabase/supabase-js": "^2.90.1",
     "cors": "^2.8.5",
     "dayjs": "^1.11.19",
     "dotenv": "^17.2.3",
