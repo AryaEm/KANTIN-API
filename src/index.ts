@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-console.log("JWT_SECRET ENTRY:", process.env.JWT_SECRET);
+console.log("JWT_SECRET ENTRY:", process.env.JWT_SECRET); 
 
 import express from 'express'
 import cors from 'cors'

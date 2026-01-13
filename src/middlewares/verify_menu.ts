@@ -16,14 +16,9 @@ const updateDataMenu = Joi.object({
     deskripsi: Joi.string().optional(),
     status: Joi.string().valid('tersedia', 'habis').optional(),
     foto: Joi.allow().optional(),
-    // id_stan: Joi.allow().required()
 })
 
 export const verifyAddMenu = (req: Request, res: Response, next: NextFunction) => {
-    console.log("=== VERIFY ADD MENU ===");
-    console.log("req.body:", req.body);
-    console.log("req.file:", req.file);
-
     const { error, value } = addDataMenu.validate(req.body, {
         abortEarly: false,
         convert: true,

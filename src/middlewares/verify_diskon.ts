@@ -2,27 +2,10 @@ import { NextFunction, Request, Response } from "express";
 import Joi from 'joi'
 
 const addDiscountSchema = Joi.object({
-    nama_diskon: Joi.string().required().messages({
-        "string.empty": "Nama diskon tidak boleh kosong.",
-        "any.required": "Nama diskon wajib diisi.",
-    }),
-    persentase_diskon: Joi.number().min(1).max(100).required().messages({
-        "number.base": "Persentase harus berupa angka.",
-        "number.min": "Persentase minimal 1.",
-        "number.max": "Persentase maksimal 100.",
-        "any.required": "Persentase wajib diisi.",
-    }),
-    tanggal_awal: Joi.date().required().messages({
-        "date.base": "Tanggal awal harus berupa tanggal yang valid.",
-        "any.required": "Tanggal awal wajib diisi.",
-    }),
-    tanggal_akhir: Joi.date()
-        .required()
-        .greater(Joi.ref("tanggal_awal"))
-        .messages({
-            "date.greater": "Tanggal akhir harus lebih besar dari tanggal awal.",
-            "any.required": "Tanggal akhir wajib diisi.",
-        }),
+    nama_diskon: Joi.string().required(),
+    persentase_diskon: Joi.number().min(1).max(100).required(),
+    tanggal_awal: Joi.date().required(),
+    tanggal_akhir: Joi.date().required().greater(Joi.ref("tanggal_awal")),
 });
 
 const updateDiscountSchema = Joi.object({
@@ -34,7 +17,7 @@ const updateDiscountSchema = Joi.object({
 
 
 export const verifyCreateDiskon = (req: Request, res: Response, next: NextFunction) => {
-    const { error } = addDiscountSchema.validate(req.body, { abortEarly: false })
+    const { error, value } = addDiscountSchema.validate(req.body, { abortEarly: false, convert: true })
 
     if (error) {
         return res.status(400).json({
@@ -42,6 +25,8 @@ export const verifyCreateDiskon = (req: Request, res: Response, next: NextFuncti
             message: error.details.map(it => it.message).join()
         })
     }
+    req.body = value;
+
     return next()
 }
 export const verifyUpdateDiskon = (req: Request, res: Response, next: NextFunction) => {
