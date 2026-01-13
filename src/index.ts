@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 console.log("JWT_SECRET ENTRY:", process.env.JWT_SECRET); 
+console.log("SUPABASE_URL =>", process.env.SUPABASE_URL);
 
 import express from 'express'
 import cors from 'cors'
