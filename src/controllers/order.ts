@@ -530,7 +530,7 @@ export const getSiswaHistory = async (req: Request, res: Response) => {
         const transaksiList = await prisma.transaksi.findMany({
             where: {
                 id_siswa: siswa.id,
-                status: StatusTransaksi.selesai,
+                status: "selesai",
             },
             orderBy: {
                 tanggal: "desc",
@@ -633,7 +633,7 @@ export const getSiswaOngoingOrder = async (req: Request, res: Response) => {
             where: {
                 id_siswa: siswa.id,
                 status: {
-                    in: ["belum_dikonfirmasi", "selesai", "ditolak"],
+                    in: ["belum_dikonfirmasi", "ditolak"],
 
                 },
             },
