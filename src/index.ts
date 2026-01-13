@@ -62,6 +62,11 @@ const swaggerOptions = {
 const swaggerDocs = swaggerJsDoc(swaggerOptions)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs))
 
+app.use(
+  "/foto_menu",
+  express.static(path.join(__dirname, "..", "public", "foto_menu"))
+);
+
 app.use(`/user`, UserRoute)
 app.use(`/menu`, MenuRoute)
 app.use(`/diskon`, DiskonRoute)
