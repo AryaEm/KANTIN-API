@@ -240,12 +240,6 @@ const createDiskon = async (req, res) => {
                 message: "Unauthorized",
             });
         }
-        if (authUser.role !== "admin_stan") {
-            return res.status(403).json({
-                status: false,
-                message: "Akses ditolak.",
-            });
-        }
         const { nama_diskon, persentase_diskon, tanggal_awal, tanggal_akhir } = req.body;
         const stan = await prisma_1.prisma.stan.findFirst({
             where: { id_user: authUser.id },
@@ -259,9 +253,9 @@ const createDiskon = async (req, res) => {
         const diskon = await prisma_1.prisma.diskon.create({
             data: {
                 nama_diskon: nama_diskon ?? "",
-                persentase_diskon: persentase_diskon ?? 0,
-                tanggal_awal: new Date(tanggal_awal),
-                tanggal_akhir: new Date(tanggal_akhir),
+                persentase_diskon: persentase_diskon ? Number(persentase_diskon) : 0,
+                tanggal_awal: tanggal_awal ? new Date(tanggal_awal) : new Date(),
+                tanggal_akhir: tanggal_akhir ? new Date(tanggal_akhir) : new Date(),
                 id_stan: stan.id,
             },
         });

@@ -6,27 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyUpdateDiskon = exports.verifyCreateDiskon = void 0;
 const joi_1 = __importDefault(require("joi"));
 const addDiscountSchema = joi_1.default.object({
-    nama_diskon: joi_1.default.string().required().messages({
-        "string.empty": "Nama diskon tidak boleh kosong.",
-        "any.required": "Nama diskon wajib diisi.",
-    }),
-    persentase_diskon: joi_1.default.number().min(1).max(100).required().messages({
-        "number.base": "Persentase harus berupa angka.",
-        "number.min": "Persentase minimal 1.",
-        "number.max": "Persentase maksimal 100.",
-        "any.required": "Persentase wajib diisi.",
-    }),
-    tanggal_awal: joi_1.default.date().required().messages({
-        "date.base": "Tanggal awal harus berupa tanggal yang valid.",
-        "any.required": "Tanggal awal wajib diisi.",
-    }),
-    tanggal_akhir: joi_1.default.date()
-        .required()
-        .greater(joi_1.default.ref("tanggal_awal"))
-        .messages({
-        "date.greater": "Tanggal akhir harus lebih besar dari tanggal awal.",
-        "any.required": "Tanggal akhir wajib diisi.",
-    }),
+    nama_diskon: joi_1.default.string().required(),
+    persentase_diskon: joi_1.default.number().min(1).max(100).required(),
+    tanggal_awal: joi_1.default.date().required(),
+    tanggal_akhir: joi_1.default.date().required().greater(joi_1.default.ref("tanggal_awal")),
 });
 const updateDiscountSchema = joi_1.default.object({
     nama_diskon: joi_1.default.string().optional(),
@@ -35,13 +18,14 @@ const updateDiscountSchema = joi_1.default.object({
     tanggal_akhir: joi_1.default.date().optional(),
 }).or("nama_diskon", "persentase_diskon", "tanggal_awal", "tanggal_akhir");
 const verifyCreateDiskon = (req, res, next) => {
-    const { error } = addDiscountSchema.validate(req.body, { abortEarly: false });
+    const { error, value } = addDiscountSchema.validate(req.body, { abortEarly: false, convert: true });
     if (error) {
         return res.status(400).json({
             status: false,
             message: error.details.map(it => it.message).join()
         });
     }
+    req.body = value;
     return next();
 };
 exports.verifyCreateDiskon = verifyCreateDiskon;

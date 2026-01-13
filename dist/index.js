@@ -3,6 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+console.log("JWT_SECRET ENTRY:", process.env.JWT_SECRET);
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const swagger_jsdoc_1 = __importDefault(require("swagger-jsdoc"));
@@ -14,7 +17,15 @@ const diskon_route_1 = __importDefault(require("./routers/diskon_route"));
 const order_route_1 = __importDefault(require("./routers/order_route"));
 const global_1 = require("./global");
 const app = (0, express_1.default)();
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: [
+        "http://localhost:3000",
+        "https://kantin-plus.vercel.app"
+    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+}));
+app.options("*", (0, cors_1.default)());
 app.use(express_1.default.json());
 const swaggerOptions = {
     swaggerDefinition: {
@@ -44,6 +55,7 @@ const swaggerOptions = {
 };
 const swaggerDocs = (0, swagger_jsdoc_1.default)(swaggerOptions);
 app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocs));
+app.use("/foto_menu", express_1.default.static(path_1.default.join(__dirname, "..", "public", "foto_menu")));
 app.use(`/user`, user_route_1.default);
 app.use(`/menu`, menu_route_1.default);
 app.use(`/diskon`, diskon_route_1.default);

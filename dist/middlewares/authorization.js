@@ -3,12 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyRole = exports.verifyToken = void 0;
 const jsonwebtoken_1 = require("jsonwebtoken");
 const verifyToken = (req, res, next) => {
+    console.log("JWT_SECRET in middleware:", process.env.JWT_SECRET);
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
         return res.status(403).json({ message: 'Access denied. No token provided.' });
     }
     try {
-        const secretKey = process.env.SECRET;
+        const secretKey = process.env.JWT_SECRET;
         if (!secretKey) {
             return res.status(500).json({ message: "Server misconfiguration" });
         }
