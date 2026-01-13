@@ -321,7 +321,7 @@ export const getStanHistory = async (req: Request, res: Response) => {
             where: {
                 id_stan: stan.id,
                 status: {
-                    in: ["belum_dikonfirmasi", "selesai", "ditolak"],
+                    in: ["belum_dikonfirmasi", "proses", "ditolak"],
                 }
             },
             orderBy: {
