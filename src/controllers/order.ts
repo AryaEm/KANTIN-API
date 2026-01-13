@@ -1,3 +1,4 @@
+// 
 import { Request, Response } from "express";
 import { StatusTransaksi } from "@prisma/client";
 import dayjs from "dayjs";
@@ -320,7 +321,7 @@ export const getStanHistory = async (req: Request, res: Response) => {
             where: {
                 id_stan: stan.id,
                 status: {
-                    in: ["belum_dikonfirmasi", "proses", "ditolak"],
+                    in: ["belum_dikonfirmasi", "selesai", "ditolak"],
                 }
             },
             orderBy: {
@@ -424,7 +425,7 @@ export const getStanHistorySelesai = async (req: Request, res: Response) => {
         const transaksiList = await prisma.transaksi.findMany({
             where: {
                 id_stan: stan.id,
-                status: "selesai", // ⭐ FILTER UTAMA
+                status: "selesai",
             },
             orderBy: {
                 tanggal: "desc",
@@ -524,10 +525,117 @@ export const getSiswaHistory = async (req: Request, res: Response) => {
                 message: "Data siswa tidak ditemukan.",
             });
         }
+        
 
         const transaksiList = await prisma.transaksi.findMany({
             where: {
                 id_siswa: siswa.id,
+                status: StatusTransaksi.selesai,
+            },
+            orderBy: {
+                tanggal: "desc",
+            },
+            include: {
+                stan: {
+                    select: {
+                        id: true,
+                        nama_stan: true,
+                    },
+                },
+                detail: {
+                    select: {
+                        id_menu: true,
+                        nama_menu: true,
+                        harga_asli: true,
+                        persentase_diskon: true,
+                        harga_setelah_diskon: true,
+                        qty: true,
+                        subtotal: true,
+                    },
+                },
+            },
+        });
+
+        const data = transaksiList.map((trx) => {
+            const total_harga = trx.detail.reduce(
+                (sum, item) => sum + item.subtotal,
+                0
+            );
+
+            const total_item = trx.detail.reduce(
+                (sum, item) => sum + item.qty,
+                0
+            );
+
+            return {
+                id_transaksi: trx.id,
+                kode_transaksi: trx.kode_transaksi,
+                tanggal: trx.tanggal,
+                status: trx.status,
+
+                stan: {
+                    id: trx.stan.id,
+                    nama_stan: trx.stan.nama_stan,
+                },
+
+                items: trx.detail.map((item) => ({
+                    id_menu: item.id_menu,
+                    nama_menu: item.nama_menu,
+                    qty: item.qty,
+                    harga_satuan: item.harga_asli,
+                    diskon_persen: item.persentase_diskon,
+                    harga_setelah_diskon: item.harga_setelah_diskon,
+                    subtotal: item.subtotal,
+                })),
+
+                total_item,
+                total_harga,
+            };
+        });
+
+        return res.status(200).json({
+            status: true,
+            message: "Riwayat transaksi siswa",
+            data,
+        });
+    } catch (error) {
+        console.error("GET SISWA HISTORY ERROR:", error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server.",
+        });
+    }
+};
+export const getSiswaOngoingOrder = async (req: Request, res: Response) => {
+    try {
+        const authUser = res.locals.user;
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
+
+        const siswa = await prisma.siswa.findFirst({
+            where: {
+                id_user: authUser.id,
+            },
+        });
+
+        if (!siswa) {
+            return res.status(404).json({
+                status: false,
+                message: "Data siswa tidak ditemukan.",
+            });
+        }
+
+        const transaksiList = await prisma.transaksi.findMany({
+            where: {
+                id_siswa: siswa.id,
+                status: {
+                    in: ["belum_dikonfirmasi", "selesai", "ditolak"],
+
+                },
             },
             orderBy: {
                 tanggal: "desc",

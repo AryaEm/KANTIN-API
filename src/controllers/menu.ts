@@ -214,13 +214,13 @@ export const addMenu = async (req: Request, res: Response) => {
       });
     }
 
-    let foto = "";
+    let fotoUrl = "";
     if (req.file) {
       const ext = req.file.originalname.split(".").pop();
-      const fileName = `${randomUUID()}.${ext}`;
+      const fileName = `menus/${randomUUID()}.${ext}`;
 
       const { error } = await supabase.storage
-        .from("foto_menu")
+        .from("foto_menu") // ⬅️ bucket HARUS ADA
         .upload(fileName, req.file.buffer, {
           contentType: req.file.mimetype,
           upsert: false,
@@ -234,7 +234,7 @@ export const addMenu = async (req: Request, res: Response) => {
         });
       }
 
-      foto = `${process.env.SUPABASE_URL}/storage/v1/object/public/foto_menu/${fileName}`;
+      fotoUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/foto_menu/${fileName}`;
     }
 
     const newMenu = await prisma.menu.create({
@@ -243,7 +243,7 @@ export const addMenu = async (req: Request, res: Response) => {
         harga: Number(harga),
         jenis: jenis as JenisMenu,
         deskripsi: deskripsi ?? "",
-        foto: foto ?? "",
+        foto: fotoUrl ?? "",
         id_stan: stan.id,
       },
     });
