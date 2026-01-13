@@ -957,7 +957,9 @@ export const getPendingTransactionCount = async (req: Request, res: Response) =>
         const pending_count = await prisma.transaksi.count({
             where: {
                 id_stan: stan.id,
-                status: "belum_dikonfirmasi",
+                status: {
+                    in: ["belum_dikonfirmasi", "proses", "ditolak"]
+                } ,
             },
         });
 
