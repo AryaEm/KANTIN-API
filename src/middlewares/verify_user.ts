@@ -102,3 +102,84 @@ export const verifyLoginUser = (req: Request, res: Response, next: NextFunction)
     }
     return next()
 }
+
+export const verifyGetSiswaHistory = (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    const { type, year, month, week } = req.query;
+
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+
+    if (!type) {
+        // tanpa filter → lanjut
+        res.locals.filter = {};
+        return next();
+    }
+
+    if (type !== "month" && type !== "week") {
+        return res.status(400).json({
+            status: false,
+            message: "Type filter tidak valid. Gunakan 'month' atau 'week'.",
+        });
+    }
+
+    if (type === "month") {
+        if (!year || !month) {
+            return res.status(400).json({
+                status: false,
+                message: "Parameter year dan month wajib diisi.",
+            });
+        }
+
+        const y = Number(year);
+        const m = Number(month);
+
+        if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+            return res.status(400).json({
+                status: false,
+                message: "Year atau month tidak valid.",
+            });
+        }
+
+        startDate = new Date(y, m - 1, 1);
+        endDate = new Date(y, m, 1);
+    }
+
+    if (type === "week") {
+        if (!year || !week) {
+            return res.status(400).json({
+                status: false,
+                message: "Parameter year dan week wajib diisi.",
+            });
+        }
+
+        const y = Number(year);
+        const w = Number(week);
+
+        if (isNaN(y) || isNaN(w) || w < 1 || w > 53) {
+            return res.status(400).json({
+                status: false,
+                message: "Year atau week tidak valid.",
+            });
+        }
+
+        const firstDayOfYear = new Date(y, 0, 1);
+        const dayOffset = (firstDayOfYear.getDay() + 6) % 7;
+
+        startDate = new Date(y, 0, 1 + (w - 1) * 7 - dayOffset);
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 7);
+    }
+
+    // inject ke controller
+    res.locals.filter = {
+        type,
+        startDate,
+        endDate,
+    };
+
+    next();
+};

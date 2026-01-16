@@ -502,10 +502,11 @@ export const getStanHistorySelesai = async (req: Request, res: Response) => {
     }
 };
 
-
 export const getSiswaHistory = async (req: Request, res: Response) => {
     try {
         const authUser = res.locals.user;
+        const { startDate, endDate } = res.locals.filter || {};
+
         if (!authUser) {
             return res.status(401).json({
                 status: false,
@@ -514,9 +515,7 @@ export const getSiswaHistory = async (req: Request, res: Response) => {
         }
 
         const siswa = await prisma.siswa.findFirst({
-            where: {
-                id_user: authUser.id,
-            },
+            where: { id_user: authUser.id },
         });
 
         if (!siswa) {
@@ -526,21 +525,23 @@ export const getSiswaHistory = async (req: Request, res: Response) => {
             });
         }
 
-
         const transaksiList = await prisma.transaksi.findMany({
             where: {
                 id_siswa: siswa.id,
                 status: "selesai",
+                ...(startDate && endDate
+                    ? {
+                          tanggal: {
+                              gte: startDate,
+                              lt: endDate,
+                          },
+                      }
+                    : {}),
             },
-            orderBy: {
-                tanggal: "desc",
-            },
+            orderBy: { tanggal: "desc" },
             include: {
                 stan: {
-                    select: {
-                        id: true,
-                        nama_stan: true,
-                    },
+                    select: { id: true, nama_stan: true },
                 },
                 detail: {
                     select: {
@@ -572,22 +573,8 @@ export const getSiswaHistory = async (req: Request, res: Response) => {
                 kode_transaksi: trx.kode_transaksi,
                 tanggal: trx.tanggal,
                 status: trx.status,
-
-                stan: {
-                    id: trx.stan.id,
-                    nama_stan: trx.stan.nama_stan,
-                },
-
-                items: trx.detail.map((item) => ({
-                    id_menu: item.id_menu,
-                    nama_menu: item.nama_menu,
-                    qty: item.qty,
-                    harga_satuan: item.harga_asli,
-                    diskon_persen: item.persentase_diskon,
-                    harga_setelah_diskon: item.harga_setelah_diskon,
-                    subtotal: item.subtotal,
-                })),
-
+                stan: trx.stan,
+                items: trx.detail,
                 total_item,
                 total_harga,
             };
@@ -606,6 +593,7 @@ export const getSiswaHistory = async (req: Request, res: Response) => {
         });
     }
 };
+
 export const getSiswaOngoingOrder = async (req: Request, res: Response) => {
     try {
         const authUser = res.locals.user;
