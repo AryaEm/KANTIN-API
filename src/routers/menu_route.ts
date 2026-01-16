@@ -13,8 +13,10 @@ app.get("/menu-admin", [verifyToken, verifyRole(["admin_stan"])], getMenusForAdm
 
 app.get("/stan/:id/menu", [verifyToken, verifyRole(["siswa"])], getMenuByStanId); // MENAMPILKAN MENU PER KANTIN (SESUAI STAN YANG DIPILIH SISWA) 
 // /stan/1/menu?jenis=makanan
-// /stan/1/menu?jenis=minuman&diskon=true
-// /stan/1/menu?status=habis&diskon=false
+// /stan/1/menu?iskon=true
+// /stan/1/menu?jenis=makanan&diskon=true
+// /stan/1/menu?status=tersedia
+// /stan/1/menu?status=habis&jenis=makanan
 
 app.post("/add", [verifyToken, verifyRole(["admin_stan"]), upload.single("foto"), verifyAddMenu], addMenu) // MENAMBAH MENU PADA KANTIN
 app.put("/update/:id", [verifyToken, verifyRole(["admin_stan"]), upload.single("foto"), verifyUpdateMenu], updateMenu) // UPDATE MENU OLEH ADMIN/PEMILIK STAN

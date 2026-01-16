@@ -15,7 +15,7 @@ app.get("/pending", [verifyToken, verifyRole(["admin_stan"])], getPendingTransac
 app.patch("/:id/reject", verifyToken, verifyRole(["admin_stan"]), rejectOrder);
 app.post("/", [verifyToken, verifyRole(["siswa"]), verifyCreateOrder], createTransaksi);
 app.put("/update/:id", [verifyToken, verifyRole(["admin_stan"]), verifyUpdateOrder], updateStatus);
-app.delete("/delete/:id", [verifyToken, verifyRole(["siswa"])], deleteOrder);
+app.delete("/delete/:id", [verifyToken, verifyRole(["siswa", "admin_stan"])], deleteOrder);
 
 app.get("/stan/pelanggan", [verifyToken, verifyRole(["admin_stan"])], getStanPelanggan)
 app.get("/nota/:id", [verifyToken, verifyRole(["siswa", "admin_stan"])], getTransaksiNotaById)
