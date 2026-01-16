@@ -384,7 +384,6 @@ export const updateDiskon = async (req: Request, res: Response) => {
             });
         }
 
-        // 1. Cari stan milik admin yang login
         const stan = await prisma.stan.findFirst({
             where: {
                 id_user: authUser.id,
@@ -398,7 +397,6 @@ export const updateDiskon = async (req: Request, res: Response) => {
             });
         }
 
-        // 2. Pastikan diskon milik stan tersebut
         const diskon = await prisma.diskon.findFirst({
             where: {
                 id: diskonId,
@@ -413,7 +411,6 @@ export const updateDiskon = async (req: Request, res: Response) => {
             });
         }
 
-        // 3. Tentukan tanggal final (support partial update)
         const tanggalAwalFinal =
             req.body.tanggal_awal ?? diskon.tanggal_awal;
 
@@ -427,7 +424,6 @@ export const updateDiskon = async (req: Request, res: Response) => {
             });
         }
 
-        // 4. Bangun data update secara DINAMIS (hindari undefined)
         const dataToUpdate: any = {};
 
         if (req.body.nama_diskon !== undefined) {
@@ -435,7 +431,7 @@ export const updateDiskon = async (req: Request, res: Response) => {
         }
 
         if (req.body.persentase_diskon !== undefined) {
-            dataToUpdate.persentase_diskon = req.body.persentase_diskon;
+            dataToUpdate.persentase_diskon = Number(req.body.persentase_diskon);
         }
 
         if (req.body.tanggal_awal !== undefined) {
