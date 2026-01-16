@@ -241,7 +241,6 @@ export const deleteOrder = async (req: Request, res: Response) => {
             });
         }
 
-        // 1. Ambil siswa berdasarkan user login
         const siswa = await prisma.siswa.findUnique({
             where: { id_user: id_user.id },
         });
@@ -253,7 +252,6 @@ export const deleteOrder = async (req: Request, res: Response) => {
             });
         }
 
-        // 2. Cari transaksi milik siswa tsb
         const transaksi = await prisma.transaksi.findFirst({
             where: {
                 id: id_transaksi,
@@ -268,15 +266,16 @@ export const deleteOrder = async (req: Request, res: Response) => {
             });
         }
 
-        // 3. Validasi status transaksi
-        if (transaksi.status !== StatusTransaksi.belum_dikonfirmasi) {
+        if (
+            transaksi.status === StatusTransaksi.proses ||
+            transaksi.status === StatusTransaksi.selesai
+        ) {
             return res.status(400).json({
                 status: false,
                 message: "Transaksi tidak dapat dihapus karena sudah diproses",
             });
         }
 
-        // 4. Hapus transaksi (detail ikut kehapus via cascade)
         await prisma.transaksi.delete({
             where: { id: transaksi.id },
         });
