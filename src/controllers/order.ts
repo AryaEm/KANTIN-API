@@ -422,10 +422,57 @@ export const getStanHistorySelesai = async (req: Request, res: Response) => {
             });
         }
 
+        const { type, year, month, week } = req.query;
+
+        let startDate: Date | undefined;
+        let endDate: Date | undefined;
+
+        if (type === "month") {
+            if (!year || !month) {
+                return res.status(400).json({
+                    status: false,
+                    message: "Parameter year dan month wajib diisi.",
+                });
+            }
+
+            const y = Number(year);
+            const m = Number(month) - 1;
+
+            startDate = new Date(y, m, 1);
+            endDate = new Date(y, m + 1, 1);
+        }
+
+        if (type === "week") {
+            if (!year || !week) {
+                return res.status(400).json({
+                    status: false,
+                    message: "Parameter year dan week wajib diisi.",
+                });
+            }
+
+            const y = Number(year);
+            const w = Number(week);
+
+            const firstDayOfYear = new Date(y, 0, 1);
+            const dayOffset = (firstDayOfYear.getDay() + 6) % 7;
+
+            startDate = new Date(y, 0, 1 + (w - 1) * 7 - dayOffset);
+            endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 7);
+        }
+
         const transaksiList = await prisma.transaksi.findMany({
             where: {
                 id_stan: stan.id,
                 status: "selesai",
+                ...(startDate && endDate
+                    ? {
+                        tanggal: {
+                            gte: startDate,
+                            lt: endDate,
+                        },
+                    }
+                    : {}),
             },
             orderBy: {
                 tanggal: "desc",
@@ -491,6 +538,11 @@ export const getStanHistorySelesai = async (req: Request, res: Response) => {
         return res.status(200).json({
             status: true,
             message: `Riwayat transaksi selesai untuk stan ${stan.nama_stan}`,
+            filter: {
+                type: type ?? "all",
+                startDate,
+                endDate,
+            },
             data,
         });
     } catch (error) {
