@@ -1090,24 +1090,6 @@ export const getTransaksiNotaById = async (req: Request, res: Response) => {
             });
         }
 
-        if (authUser.role === "siswa") {
-            if (transaksi.id_siswa !== authUser.siswa?.id) {
-                return res.status(403).json({
-                    status: false,
-                    message: "Akses ditolak.",
-                });
-            }
-        }
-
-        if (authUser.role === "admin_stan") {
-            if (transaksi.id_stan !== authUser.stan?.id) {
-                return res.status(403).json({
-                    status: false,
-                    message: "Akses ditolak.",
-                });
-            }
-        }
-
         const total_item = transaksi.detail.reduce(
             (sum, item) => sum + item.qty,
             0
