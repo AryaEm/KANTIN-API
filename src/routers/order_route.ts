@@ -1,6 +1,6 @@
 import express from "express"
 import { verifyRole, verifyToken } from "../middlewares/authorization"
-import { createTransaksi, deleteOrder, getIncome, getOrder, getPendingTransactionCount, getSiswaHistory, getSiswaOngoingOrder, getStanHistory, getStanHistorySelesai, getTransaksiNotaById, rejectOrder, updateStatus } from "../controllers/order"
+import { createTransaksi, deleteOrder, getIncome, getOrder, getPendingTransactionCount, getSiswaHistory, getSiswaOngoingOrder, getStanHistory, getStanHistorySelesai, getStanPelanggan, getTransaksiNotaById, rejectOrder, updateStatus } from "../controllers/order"
 import { verifyCreateOrder, verifyUpdateOrder } from "../middlewares/verify_order"
 import { verifyGetSiswaHistory } from "../middlewares/verify_user"
 
@@ -17,6 +17,7 @@ app.post("/", [verifyToken, verifyRole(["siswa"]), verifyCreateOrder], createTra
 app.put("/update/:id", [verifyToken, verifyRole(["admin_stan"]), verifyUpdateOrder], updateStatus);
 app.delete("/delete/:id", [verifyToken, verifyRole(["siswa"])], deleteOrder);
 
+app.get("/stan/pelanggan", [verifyToken, verifyRole(["siswa", "admin_stan"])], getStanPelanggan)
 app.get("/nota/:id", [verifyToken, verifyRole(["siswa", "admin_stan"])], getTransaksiNotaById)
 app.get("/report/income", [verifyToken, verifyRole(["admin_stan"])], getIncome); //report/income?type=month&year=2026&month=1
 app.get("/report/order", [verifyToken, verifyRole(["admin_stan"])], getOrder); //report/order?type=month&year=2026&month=1

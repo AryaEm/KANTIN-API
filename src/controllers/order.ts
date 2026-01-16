@@ -1194,3 +1194,102 @@ export const getTransaksiNotaById = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const getStanPelanggan = async (req: Request, res: Response) => {
+    try {
+        const authUser = res.locals.user;
+
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
+
+        // ambil stan berdasarkan user login
+        const stan = await prisma.stan.findFirst({
+            where: {
+                id_user: authUser.id,
+            },
+        });
+
+        if (!stan) {
+            return res.status(404).json({
+                status: false,
+                message: "Stan tidak ditemukan untuk user ini.",
+            });
+        }
+
+        // ambil semua transaksi stan ini
+        const transaksiList = await prisma.transaksi.findMany({
+            where: {
+                id_stan: stan.id,
+            },
+            include: {
+                siswa: {
+                    select: {
+                        id: true,
+                        nama_siswa: true,
+                        telp: true,
+                    },
+                },
+                detail: {
+                    select: {
+                        qty: true,
+                        subtotal: true,
+                    },
+                },
+            },
+            orderBy: {
+                tanggal: "desc",
+            },
+        });
+
+        // mapping pelanggan (unique by id_siswa)
+        const pelangganMap = new Map<number, any>();
+
+        transaksiList.forEach((trx) => {
+            const total_item = trx.detail.reduce(
+                (sum, item) => sum + item.qty,
+                0
+            );
+
+            const total_harga = trx.detail.reduce(
+                (sum, item) => sum + item.subtotal,
+                0
+            );
+
+            if (!pelangganMap.has(trx.siswa.id)) {
+                pelangganMap.set(trx.siswa.id, {
+                    id_siswa: trx.siswa.id,
+                    nama_siswa: trx.siswa.nama_siswa,
+                    telp: trx.siswa.telp,
+                    total_transaksi: 1,
+                    total_item,
+                    total_pengeluaran: total_harga,
+                    terakhir_transaksi: trx.tanggal,
+                });
+            } else {
+                const pelanggan = pelangganMap.get(trx.siswa.id);
+                pelanggan.total_transaksi += 1;
+                pelanggan.total_item += total_item;
+                pelanggan.total_pengeluaran += total_harga;
+            }
+        });
+
+        const data = Array.from(pelangganMap.values());
+
+        return res.status(200).json({
+            status: true,
+            message: `Daftar pelanggan stan ${stan.nama_stan}`,
+            total_pelanggan: data.length,
+            data,
+        });
+    } catch (error) {
+        console.error("GET STAN PELANGGAN ERROR:", error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server.",
+        });
+    }
+};
