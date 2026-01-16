@@ -10,7 +10,11 @@ app.use(express.json());
 app.get("/stan", [verifyToken, verifyRole(["siswa"])], getAllStan); // MENAMPILKAN SEMUA STAN
 app.get("/menu-kantin", [verifyToken, verifyRole(["siswa"])], getAllMenusForSiswa); // MENAMPILKAN MENU KANTIN (BISA FILTER KANTIN)
 app.get("/menu-admin", [verifyToken, verifyRole(["admin_stan"])], getMenusForAdminStan); // MENAMPILKAN MENU PER KANTIN (SESUAI USER LOGIN) 
+
 app.get("/stan/:id/menu", [verifyToken, verifyRole(["siswa"])], getMenuByStanId); // MENAMPILKAN MENU PER KANTIN (SESUAI STAN YANG DIPILIH SISWA) 
+// /stan/1/menu?jenis=makanan
+// /stan/1/menu?jenis=minuman&diskon=true
+// /stan/1/menu?status=habis&diskon=false
 
 app.post("/add", [verifyToken, verifyRole(["admin_stan"]), upload.single("foto"), verifyAddMenu], addMenu) // MENAMBAH MENU PADA KANTIN
 app.put("/update/:id", [verifyToken, verifyRole(["admin_stan"]), upload.single("foto"), verifyUpdateMenu], updateMenu) // UPDATE MENU OLEH ADMIN/PEMILIK STAN

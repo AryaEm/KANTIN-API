@@ -34,7 +34,18 @@ export const getAllStan = async (req: Request, res: Response) => {
 export const getMenuByStanId = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const { jenis, diskon, status } = req.query;
     const now = new Date();
+
+    const menuWhere: any = {};
+
+    if (jenis) {
+      menuWhere.jenis = jenis; // makanan | minuman
+    }
+
+    if (status) {
+      menuWhere.status = status; // tersedia | habis
+    }
 
     const stan = await prisma.stan.findUnique({
       where: { id: Number(id) },
@@ -44,9 +55,7 @@ export const getMenuByStanId = async (req: Request, res: Response) => {
         nama_pemilik: true,
         telp: true,
         menu: {
-          where: {
-            status: "tersedia",
-          },
+          where: menuWhere,
           select: {
             id: true,
             nama_menu: true,
@@ -54,6 +63,7 @@ export const getMenuByStanId = async (req: Request, res: Response) => {
             jenis: true,
             harga: true,
             foto: true,
+            status: true,
             menuDiskon: {
               select: {
                 diskon: {
@@ -77,45 +87,53 @@ export const getMenuByStanId = async (req: Request, res: Response) => {
       });
     }
 
-    const data = {
-      id: stan.id,
-      name: stan.nama_stan,
-      owner: stan.nama_pemilik,
-      telp: stan.telp,
-      menus: stan.menu.map((menu) => {
-        const activeDiskon = menu.menuDiskon.find(
-          (md) =>
-            now >= md.diskon.tanggal_awal &&
-            now <= md.diskon.tanggal_akhir
-        );
+    let menus = stan.menu.map((menu) => {
+      const activeDiskon = menu.menuDiskon.find(
+        (md) =>
+          now >= md.diskon.tanggal_awal &&
+          now <= md.diskon.tanggal_akhir
+      );
 
-        return {
-          id: menu.id,
-          name: menu.nama_menu,
-          description: menu.deskripsi,
-          jenis_menu: menu.jenis,
-          price: menu.harga,
-          image: menu.foto,
-          discount: activeDiskon
-            ? activeDiskon.diskon.persentase_diskon
-            : 0,
-        };
-      }),
-    };
+      return {
+        id: menu.id,
+        name: menu.nama_menu,
+        description: menu.deskripsi,
+        jenis_menu: menu.jenis,
+        price: menu.harga,
+        image: menu.foto,
+        status: menu.status,
+        discount: activeDiskon
+          ? activeDiskon.diskon.persentase_diskon
+          : 0,
+      };
+    });
+
+    if (diskon === "true") {
+      menus = menus.filter((m) => m.discount > 0);
+    }
+
+    if (diskon === "false") {
+      menus = menus.filter((m) => m.discount === 0);
+    }
 
     return res.status(200).json({
       status: true,
-      data,
+      data: {
+        id: stan.id,
+        name: stan.nama_stan,
+        owner: stan.nama_pemilik,
+        telp: stan.telp,
+        menus,
+      },
     });
   } catch (error) {
-    console.error(error);
+    console.error("GET MENU BY STAN ERROR:", error);
     return res.status(500).json({
       status: false,
       message: "Terjadi kesalahan server",
     });
   }
 };
-
 
 export const getAllMenusForSiswa = async (req: Request, res: Response) => {
   try {
