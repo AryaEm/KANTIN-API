@@ -531,11 +531,11 @@ export const getSiswaHistory = async (req: Request, res: Response) => {
                 status: "selesai",
                 ...(startDate && endDate
                     ? {
-                          tanggal: {
-                              gte: startDate,
-                              lt: endDate,
-                          },
-                      }
+                        tanggal: {
+                            gte: startDate,
+                            lt: endDate,
+                        },
+                    }
                     : {}),
             },
             orderBy: { tanggal: "desc" },
@@ -1027,6 +1027,136 @@ export const rejectOrder = async (req: Request, res: Response) => {
         return res.status(500).json({
             status: false,
             message: "Terjadi kesalahan server",
+        });
+    }
+};
+
+export const getTransaksiNotaById = async (req: Request, res: Response) => {
+    try {
+        const authUser = res.locals.user;
+        const id_transaksi = Number(req.params.id);
+
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
+
+        if (isNaN(id_transaksi)) {
+            return res.status(400).json({
+                status: false,
+                message: "ID transaksi tidak valid.",
+            });
+        }
+
+        const transaksi = await prisma.transaksi.findFirst({
+            where: {
+                id: id_transaksi,
+            },
+            include: {
+                stan: {
+                    select: {
+                        id: true,
+                        nama_stan: true,
+                        nama_pemilik: true,
+                        telp: true,
+                    },
+                },
+                siswa: {
+                    select: {
+                        id: true,
+                        nama_siswa: true,
+                        telp: true,
+                    },
+                },
+                detail: {
+                    select: {
+                        nama_menu: true,
+                        harga_asli: true,
+                        persentase_diskon: true,
+                        harga_setelah_diskon: true,
+                        qty: true,
+                        subtotal: true,
+                    },
+                },
+            },
+        });
+
+        if (!transaksi) {
+            return res.status(404).json({
+                status: false,
+                message: "Transaksi tidak ditemukan.",
+            });
+        }
+
+        if (authUser.role === "siswa") {
+            if (transaksi.id_siswa !== authUser.siswa?.id) {
+                return res.status(403).json({
+                    status: false,
+                    message: "Akses ditolak.",
+                });
+            }
+        }
+
+        if (authUser.role === "admin_stan") {
+            if (transaksi.id_stan !== authUser.stan?.id) {
+                return res.status(403).json({
+                    status: false,
+                    message: "Akses ditolak.",
+                });
+            }
+        }
+
+        const total_item = transaksi.detail.reduce(
+            (sum, item) => sum + item.qty,
+            0
+        );
+
+        const total_harga = transaksi.detail.reduce(
+            (sum, item) => sum + item.subtotal,
+            0
+        );
+
+        const nota = {
+            id_transaksi: transaksi.id,
+            tanggal: transaksi.tanggal,
+            status: transaksi.status,
+
+            stan: {
+                nama_stan: transaksi.stan.nama_stan,
+                nama_pemilik: transaksi.stan.nama_pemilik,
+                telp: transaksi.stan.telp,
+            },
+
+            siswa: {
+                nama_siswa: transaksi.siswa.nama_siswa,
+                telp: transaksi.siswa.telp,
+            },
+
+            items: transaksi.detail.map((item) => ({
+                nama_menu: item.nama_menu,
+                qty: item.qty,
+                harga_asli: item.harga_asli,
+                diskon_persen: item.persentase_diskon,
+                harga_setelah_diskon: item.harga_setelah_diskon,
+                subtotal: item.subtotal,
+            })),
+
+            total_item,
+            total_harga,
+        };
+
+        return res.status(200).json({
+            status: true,
+            message: "Bukti transaksi",
+            data: nota,
+        });
+    } catch (error) {
+        console.error("GET TRANSAKSI NOTA ERROR:", error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server.",
         });
     }
 };
