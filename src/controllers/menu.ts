@@ -285,7 +285,7 @@ export const addMenu = async (req: Request, res: Response) => {
 export const updateMenu = async (req: Request, res: Response) => {
   console.log("FILE:", req.file);
   console.log("BODY:", req.body);
-  
+
   try {
     const id_menu = Number(req.params.id);
     const authUser = res.locals.user;
@@ -374,8 +374,15 @@ export const updateMenu = async (req: Request, res: Response) => {
 
     const updated = await prisma.menu.update({
       where: { id: id_menu },
-      data,
-    });;
+      data: {
+        nama_menu: nama_menu ?? menu.nama_menu,
+        harga: harga !== undefined ? Number(harga) : menu.harga,
+        jenis: jenis ?? menu.jenis,
+        deskripsi: deskripsi ?? menu.deskripsi,
+        status: status ?? menu.status,
+      },
+    });
+
 
     return res.status(200).json({
       status: true,
