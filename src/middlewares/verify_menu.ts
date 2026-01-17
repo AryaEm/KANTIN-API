@@ -15,8 +15,7 @@ const updateDataMenu = Joi.object({
     jenis: Joi.string().valid('makanan', 'minuman').optional(),
     deskripsi: Joi.string().optional(),
     status: Joi.string().valid('tersedia', 'habis').optional(),
-    foto: Joi.allow().optional(),
-})
+});
 
 export const verifyAddMenu = (req: Request, res: Response, next: NextFunction) => {
     const { error, value } = addDataMenu.validate(req.body, {

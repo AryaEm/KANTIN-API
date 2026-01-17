@@ -238,7 +238,7 @@ export const addMenu = async (req: Request, res: Response) => {
       const fileName = `menus/${randomUUID()}.${ext}`;
 
       const { error } = await supabase.storage
-        .from("foto_menu") // ⬅️ bucket HARUS ADA
+        .from("foto_menu")
         .upload(fileName, req.file.buffer, {
           contentType: req.file.mimetype,
           upsert: false,
@@ -283,6 +283,9 @@ export const addMenu = async (req: Request, res: Response) => {
 };
 
 export const updateMenu = async (req: Request, res: Response) => {
+  console.log("FILE:", req.file);
+  console.log("BODY:", req.body);
+  
   try {
     const id_menu = Number(req.params.id);
     const authUser = res.locals.user;
@@ -293,7 +296,7 @@ export const updateMenu = async (req: Request, res: Response) => {
       });
     }
 
-    // cek menu ada atau nggak
+
     const menu = await prisma.menu.findUnique({
       where: { id: id_menu },
     });
@@ -305,7 +308,6 @@ export const updateMenu = async (req: Request, res: Response) => {
       });
     }
 
-    // cek stan mana yang dimiliki user login
     const stanPemilik = await prisma.stan.findFirst({
       where: { id_user: authUser.id },
     });
@@ -324,7 +326,6 @@ export const updateMenu = async (req: Request, res: Response) => {
       });
     }
 
-    // update data
     const {
       nama_menu,
       harga,
@@ -333,16 +334,48 @@ export const updateMenu = async (req: Request, res: Response) => {
       status,
     } = req.body;
 
+    const data: any = {};
+
+    if (nama_menu !== undefined && nama_menu !== "") data.nama_menu = nama_menu;
+    if (harga !== undefined) data.harga = Number(harga);
+    if (jenis !== undefined && jenis !== "") data.jenis = jenis;
+    if (deskripsi !== undefined && deskripsi !== "") data.deskripsi = deskripsi;
+    if (status !== undefined && status !== "") data.status = status;
+
+    if (req.file) {
+      const ext = req.file.originalname.split(".").pop();
+      const fileName = `menus/${randomUUID()}.${ext}`;
+
+      const { error } = await supabase.storage
+        .from("foto_menu")
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false,
+        });
+
+      if (error) {
+        return res.status(500).json({
+          status: false,
+          message: "Gagal upload foto menu",
+          error: error.message,
+        });
+      }
+
+      const fotoUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/foto_menu/${fileName}`;
+      data.foto = fotoUrl;
+
+      if (menu.foto) {
+        const oldPath = menu.foto.split("/foto_menu/")[1];
+        if (oldPath) {
+          await supabase.storage.from("foto_menu").remove([oldPath]);
+        }
+      }
+    }
+
     const updated = await prisma.menu.update({
       where: { id: id_menu },
-      data: {
-        nama_menu: nama_menu ?? menu.nama_menu,
-        harga: harga !== undefined ? Number(harga) : menu.harga,
-        jenis: jenis ?? menu.jenis,
-        deskripsi: deskripsi ?? menu.deskripsi,
-        status: status ?? menu.status,
-      },
-    });
+      data,
+    });;
 
     return res.status(200).json({
       status: true,
