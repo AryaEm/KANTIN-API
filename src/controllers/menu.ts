@@ -283,19 +283,16 @@ export const addMenu = async (req: Request, res: Response) => {
 };
 
 export const updateMenu = async (req: Request, res: Response) => {
-  console.log("FILE:", req.file);
-  console.log("BODY:", req.body);
-
   try {
     const id_menu = Number(req.params.id);
     const authUser = res.locals.user;
+
     if (!authUser) {
       return res.status(401).json({
         status: false,
         message: "Unauthorized",
       });
     }
-
 
     const menu = await prisma.menu.findUnique({
       where: { id: id_menu },
@@ -304,7 +301,7 @@ export const updateMenu = async (req: Request, res: Response) => {
     if (!menu) {
       return res.status(404).json({
         status: false,
-        message: "Menu tidak ditemukan"
+        message: "Menu tidak ditemukan",
       });
     }
 
@@ -312,17 +309,10 @@ export const updateMenu = async (req: Request, res: Response) => {
       where: { id_user: authUser.id },
     });
 
-    if (!stanPemilik) {
+    if (!stanPemilik || menu.id_stan !== stanPemilik.id) {
       return res.status(403).json({
         status: false,
-        message: "User ini tidak memiliki stan."
-      });
-    }
-
-    if (menu.id_stan !== stanPemilik.id) {
-      return res.status(403).json({
-        status: false,
-        message: "Tidak boleh mengupdate menu milik stan lain."
+        message: "Tidak boleh mengupdate menu milik stan lain",
       });
     }
 
@@ -334,13 +324,30 @@ export const updateMenu = async (req: Request, res: Response) => {
       status,
     } = req.body;
 
+    // ===============================
+    // BUILD DATA UPDATE (PARTIAL SAFE)
+    // ===============================
     const data: any = {};
 
-    if (nama_menu !== undefined && nama_menu !== "") data.nama_menu = nama_menu;
-    if (harga !== undefined) data.harga = Number(harga);
-    if (jenis !== undefined && jenis !== "") data.jenis = jenis;
-    if (deskripsi !== undefined && deskripsi !== "") data.deskripsi = deskripsi;
-    if (status !== undefined && status !== "") data.status = status;
+    if (nama_menu !== undefined && nama_menu !== "")
+      data.nama_menu = nama_menu;
+
+    if (harga !== undefined)
+      data.harga = Number(harga);
+
+    if (jenis !== undefined && jenis !== "")
+      data.jenis = jenis;
+
+    if (deskripsi !== undefined && deskripsi !== "")
+      data.deskripsi = deskripsi;
+
+    if (status !== undefined && status !== "")
+      data.status = status;
+
+    // ===============================
+    // FOTO (UPLOAD DULU, JANGAN HAPUS YG LAMA)
+    // ===============================
+    let oldFotoPath: string | null = null;
 
     if (req.file) {
       const ext = req.file.originalname.split(".").pop();
@@ -361,37 +368,38 @@ export const updateMenu = async (req: Request, res: Response) => {
         });
       }
 
-      const fotoUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/foto_menu/${fileName}`;
-      data.foto = fotoUrl;
+      data.foto = `${process.env.SUPABASE_URL}/storage/v1/object/public/foto_menu/${fileName}`;
 
       if (menu.foto) {
-        const oldPath = menu.foto.split("/foto_menu/")[1];
-        if (oldPath) {
-          await supabase.storage.from("foto_menu").remove([oldPath]);
-        }
+        oldFotoPath = menu.foto.split("/foto_menu/")[1] ?? null;
       }
     }
 
+    // ===============================
+    // UPDATE DB (SUMBER KEBENARAN)
+    // ===============================
     const updated = await prisma.menu.update({
       where: { id: id_menu },
-      data: {
-        nama_menu: nama_menu ?? menu.nama_menu,
-        harga: harga !== undefined ? Number(harga) : menu.harga,
-        jenis: jenis ?? menu.jenis,
-        deskripsi: deskripsi ?? menu.deskripsi,
-        status: status ?? menu.status,
-      },
+      data,
     });
 
+    // ===============================
+    // HAPUS FOTO LAMA SETELAH UPDATE OK
+    // ===============================
+    if (oldFotoPath) {
+      await supabase.storage
+        .from("foto_menu")
+        .remove([oldFotoPath]);
+    }
 
     return res.status(200).json({
       status: true,
       message: "Berhasil update menu",
-      data: updated
+      data: updated,
     });
 
   } catch (error: any) {
-    console.log(error);
+    console.error("UPDATE MENU ERROR:", error);
     return res.status(500).json({
       status: false,
       message: "Terjadi kesalahan server",
