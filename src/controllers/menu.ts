@@ -450,6 +450,7 @@ export const getMenusForAdminStan = async (req: Request, res: Response) => {
           select: {
             diskon: {
               select: {
+                id: true,
                 persentase_diskon: true,
                 tanggal_awal: true,
                 tanggal_akhir: true,
@@ -478,8 +479,12 @@ export const getMenusForAdminStan = async (req: Request, res: Response) => {
         discount: activeDiskon
           ? activeDiskon.diskon.persentase_diskon
           : 0,
+        activeDiskonId: activeDiskon
+          ? activeDiskon.diskon.id
+          : null,
       };
     });
+    ;
 
     return res.status(200).json({
       status: true,
