@@ -294,108 +294,106 @@ export const deleteOrder = async (req: Request, res: Response) => {
 };
 
 export const getStanHistory = async (req: Request, res: Response) => {
-    try {
-        const authUser = res.locals.user;
-        if (!authUser) {
-            return res.status(401).json({
-                status: false,
-                message: "Unauthorized",
-            });
-        }
-
-        const stan = await prisma.stan.findFirst({
-            where: {
-                id_user: authUser.id,
-            },
-        });
-
-        if (!stan) {
-            return res.status(404).json({
-                status: false,
-                message: "Stan tidak ditemukan untuk user ini.",
-            });
-        }
-
-        const transaksiList = await prisma.transaksi.findMany({
-            where: {
-                id_stan: stan.id,
-                status: {
-                    in: ["belum_dikonfirmasi", "proses"],
-                }
-            },
-            orderBy: {
-                tanggal: "desc",
-            },
-            include: {
-                siswa: {
-                    select: {
-                        id: true,
-                        nama_siswa: true,
-                    },
-                },
-                detail: {
-                    select: {
-                        id_menu: true,
-                        nama_menu: true,
-                        harga_asli: true,
-                        persentase_diskon: true,
-                        harga_setelah_diskon: true,
-                        qty: true,
-                        subtotal: true,
-                    },
-                },
-            },
-        });
-
-        const data = transaksiList.map((trx) => {
-            const total_harga = trx.detail.reduce(
-                (sum, item) => sum + item.subtotal,
-                0
-            );
-
-            const total_item = trx.detail.reduce(
-                (sum, item) => sum + item.qty,
-                0
-            );
-
-            return {
-                id_transaksi: trx.id,
-                kode_transaksi: trx.kode_transaksi,
-                tanggal: trx.tanggal,
-                status: trx.status,
-
-                siswa: {
-                    id: trx.siswa.id,
-                    nama_siswa: trx.siswa.nama_siswa,
-                },
-
-                items: trx.detail.map((item) => ({
-                    id_menu: item.id_menu,
-                    nama_menu: item.nama_menu,
-                    qty: item.qty,
-                    harga_satuan: item.harga_asli,
-                    diskon_persen: item.persentase_diskon,
-                    harga_setelah_diskon: item.harga_setelah_diskon,
-                    subtotal: item.subtotal,
-                })),
-
-                total_item,
-                total_harga,
-            };
-        });
-
-        return res.status(200).json({
-            status: true,
-            message: `Riwayat transaksi untuk stan ${stan.nama_stan}`,
-            data,
-        });
-    } catch (error) {
-        console.error("GET STAN HISTORY ERROR:", error);
-        return res.status(500).json({
-            status: false,
-            message: "Terjadi kesalahan server.",
-        });
+  try {
+    const authUser = res.locals.user;
+    if (!authUser) {
+      return res.status(401).json({
+        status: false,
+        message: "Unauthorized",
+      });
     }
+
+    const stan = await prisma.stan.findFirst({
+      where: {
+        id_user: authUser.id,
+      },
+    });
+
+    if (!stan) {
+      return res.status(404).json({
+        status: false,
+        message: "Stan tidak ditemukan",
+      });
+    }
+
+    const { status } = req.query;
+
+    const transaksiWhere: any = {
+      id_stan: stan.id,
+      // DEFAULT: cuma ini yang boleh tampil
+      status: {
+        in: ["belum_dikonfirmasi", "proses"],
+      },
+    };
+
+    // kalau filter AKTIF & bukan string kosong
+    if (typeof status === "string" && status.trim() !== "") {
+      transaksiWhere.status = status;
+    }
+
+    const transaksiList = await prisma.transaksi.findMany({
+      where: transaksiWhere,
+      orderBy: {
+        tanggal: "desc",
+      },
+      include: {
+        siswa: {
+          select: {
+            id: true,
+            nama_siswa: true,
+          },
+        },
+        detail: {
+          select: {
+            id_menu: true,
+            nama_menu: true,
+            harga_asli: true,
+            persentase_diskon: true,
+            harga_setelah_diskon: true,
+            qty: true,
+            subtotal: true,
+          },
+        },
+      },
+    });
+
+    const data = transaksiList.map((trx) => {
+      const total_harga = trx.detail.reduce(
+        (sum, item) => sum + item.subtotal,
+        0
+      );
+
+      const total_item = trx.detail.reduce(
+        (sum, item) => sum + item.qty,
+        0
+      );
+
+      return {
+        id_transaksi: trx.id,
+        kode_transaksi: trx.kode_transaksi,
+        tanggal: trx.tanggal,
+        status: trx.status,
+        siswa: {
+          id: trx.siswa.id,
+          nama_siswa: trx.siswa.nama_siswa,
+        },
+        items: trx.detail,
+        total_item,
+        total_harga,
+      };
+    });
+
+    return res.status(200).json({
+      status: true,
+      data,
+    });
+  } catch (error) {
+    console.error("GET STAN HISTORY ERROR:", error);
+    return res.status(500).json({
+      status: false,
+      message: "Terjadi kesalahan server",
+    });
+  }
 };
 
 export const getStanHistorySelesai = async (req: Request, res: Response) => {
