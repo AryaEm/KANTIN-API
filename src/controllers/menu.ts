@@ -429,7 +429,8 @@ export const getMenusForAdminStan = async (req: Request, res: Response) => {
       });
     }
 
-    // ambil menu milik stan tersebut
+    const now = new Date();
+
     const menus = await prisma.menu.findMany({
       where: {
         id_stan: stan.id,
@@ -437,22 +438,64 @@ export const getMenusForAdminStan = async (req: Request, res: Response) => {
       orderBy: {
         nama_menu: "asc",
       },
+      select: {
+        id: true,
+        nama_menu: true,
+        deskripsi: true,
+        jenis: true,
+        harga: true,
+        foto: true,
+        status: true,
+        menuDiskon: {
+          select: {
+            diskon: {
+              select: {
+                persentase_diskon: true,
+                tanggal_awal: true,
+                tanggal_akhir: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const mappedMenus = menus.map((menu) => {
+      const activeDiskon = menu.menuDiskon.find(
+        (md) =>
+          now >= md.diskon.tanggal_awal &&
+          now <= md.diskon.tanggal_akhir
+      );
+
+      return {
+        id: menu.id,
+        name: menu.nama_menu,
+        description: menu.deskripsi,
+        jenis_menu: menu.jenis,
+        price: menu.harga,
+        image: menu.foto,
+        status: menu.status,
+        discount: activeDiskon
+          ? activeDiskon.diskon.persentase_diskon
+          : 0,
+      };
     });
 
     return res.status(200).json({
       status: true,
       message: `Menu berhasil ditampilkan (${stan.nama_stan})`,
-      data: menus,
+      data: mappedMenus,
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("GET MENU ADMIN ERROR:", error);
     return res.status(500).json({
       status: false,
       message: "Terjadi kesalahan server",
     });
   }
 };
+
 
 export const deleteMenu = async (req: Request, res: Response) => {
   try {

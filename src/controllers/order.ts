@@ -320,13 +320,11 @@ export const getStanHistory = async (req: Request, res: Response) => {
 
     const transaksiWhere: any = {
       id_stan: stan.id,
-      // DEFAULT: cuma ini yang boleh tampil
       status: {
         in: ["belum_dikonfirmasi", "proses"],
       },
     };
 
-    // kalau filter AKTIF & bukan string kosong
     if (typeof status === "string" && status.trim() !== "") {
       transaksiWhere.status = status;
     }
