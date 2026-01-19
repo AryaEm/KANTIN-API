@@ -313,13 +313,6 @@ export const getAvailableDiskon = async (req: Request, res: Response) => {
     try {
         const authUser = res.locals.user;
 
-        if (authUser.role !== "admin_stan") {
-            return res.status(403).json({
-                status: false,
-                message: "Akses ditolak.",
-            });
-        }
-
         const stan = await prisma.stan.findFirst({
             where: { id_user: authUser.id },
         });
@@ -704,8 +697,10 @@ export const lepasDiskon = async (req: Request, res: Response) => {
                 message: "Unauthorized",
             });
         }
-        const idMenu = Number(req.params.id_menu);
-        const idDiskon = Number(req.params.id_diskon);
+        // const idMenu = Number(req.params.id_menu);
+        // const idDiskon = Number(req.params.id_diskon);
+        const idMenu = Number(req.params.menuId);
+        const idDiskon = Number(req.params.idDiskon);
 
         const stan = await prisma.stan.findFirst({
             where: {
@@ -748,10 +743,19 @@ export const lepasDiskon = async (req: Request, res: Response) => {
             });
         }
 
+        // const menuDiskon = await prisma.menuDiskon.findFirst({
+        //     where: {
+        //         id_menu: idMenu,
+        //         id_diskon: idDiskon,
+        //     },
+        // });
         const menuDiskon = await prisma.menuDiskon.findFirst({
             where: {
                 id_menu: idMenu,
                 id_diskon: idDiskon,
+                menu: {
+                    id_stan: stan.id,
+                },
             },
         });
 
