@@ -301,3 +301,44 @@ export const updateFotoSiswa = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const getProfile = async (req: Request, res: Response) => {
+    try {
+        const authUser = res.locals.user;
+
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: authUser.id },
+            include: {
+                siswa: true,
+                stan: true,
+            },
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                status: false,
+                message: "User tidak ditemukan",
+            });
+        }
+
+        return res.status(200).json({
+            status: true,
+            message: "Data profile berhasil diambil",
+            data: user,
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan server",
+            error: String(error),
+        });
+    }
+};
