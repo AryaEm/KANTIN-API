@@ -21,6 +21,5 @@ app.get("/stan/pelanggan", [verifyToken, verifyRole(["admin_stan"])], getStanPel
 app.get("/nota/:id", [verifyToken, verifyRole(["siswa", "admin_stan"])], getTransaksiNotaById)
 app.get("/report/income", [verifyToken, verifyRole(["admin_stan"])], getIncome);                //report/income?type=month&year=2026&month=1
 app.get("/report/order", [verifyToken, verifyRole(["admin_stan"])], getOrder);                  //report/order?type=month&year=2026&month=1
-// app
 
 export default app  
