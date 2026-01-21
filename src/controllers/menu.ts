@@ -324,9 +324,6 @@ export const updateMenu = async (req: Request, res: Response) => {
       status,
     } = req.body;
 
-    // ===============================
-    // BUILD DATA UPDATE (PARTIAL SAFE)
-    // ===============================
     const data: any = {};
 
     if (nama_menu !== undefined && nama_menu !== "")
@@ -344,9 +341,6 @@ export const updateMenu = async (req: Request, res: Response) => {
     if (status !== undefined && status !== "")
       data.status = status;
 
-    // ===============================
-    // FOTO (UPLOAD DULU, JANGAN HAPUS YG LAMA)
-    // ===============================
     let oldFotoPath: string | null = null;
 
     if (req.file) {
@@ -375,17 +369,11 @@ export const updateMenu = async (req: Request, res: Response) => {
       }
     }
 
-    // ===============================
-    // UPDATE DB (SUMBER KEBENARAN)
-    // ===============================
     const updated = await prisma.menu.update({
       where: { id: id_menu },
       data,
     });
 
-    // ===============================
-    // HAPUS FOTO LAMA SETELAH UPDATE OK
-    // ===============================
     if (oldFotoPath) {
       await supabase.storage
         .from("foto_menu")

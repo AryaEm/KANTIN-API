@@ -1,9 +1,10 @@
 import { Request, Response } from "express";
-import fs from "fs";
+// import fs from "fs";
 import md5 from "md5";
-import path from "path";
+// import path from "path";
 import { prisma } from "../lib/prisma";
-
+import { supabase } from "../lib/supabase";
+import { randomUUID } from "crypto";
 
 export const getAllUsers = async (req: Request, res: Response) => {
     try {
@@ -246,13 +247,6 @@ export const updateFotoSiswa = async (req: Request, res: Response) => {
         const { id } = req.params;
         const authUser = res.locals.user;
 
-        if (authUser.role !== "siswa") {
-            return res.status(403).json({
-                status: false,
-                message: "Akses ditolak.",
-            });
-        }
-
         const siswa = await prisma.siswa.findFirst({
             where: { id: Number(id) },
         });
@@ -271,22 +265,38 @@ export const updateFotoSiswa = async (req: Request, res: Response) => {
             });
         }
 
-        let filename = siswa.foto ?? "";
+        const data: any = {};
+        let oldFotoPath: string | null = null;
 
         if (req.file) {
-            filename = req.file.filename;
+            const ext = req.file.originalname.split(".").pop();
+            const fileName = `users/${randomUUID()}.${ext}`;
+
+            const { error } = await supabase.storage
+                .from("foto_siswa")
+                .upload(fileName, req.file.buffer, {
+                    contentType: req.file.mimetype,
+                    upsert: false,
+                });
+
+            if (error) {
+                return res.status(500).json({
+                    status: false,
+                    message: "Gagal upload foto user",
+                    error: error.message,
+                });
+            }
+
+            data.foto = `${process.env.SUPABASE_URL}/storage/v1/object/public/foto_siswa/${fileName}`;
 
             if (siswa.foto) {
-                const oldPath = path.join(__dirname, "../../public/foto_siswa", siswa.foto);
-                if (fs.existsSync(oldPath)) {
-                    fs.unlinkSync(oldPath);
-                }
+                oldFotoPath = siswa.foto.split("/foto_siswa/")[1] ?? null;
             }
         }
 
         const updatePicture = await prisma.siswa.update({
             where: { id: Number(id) },
-            data: { foto: filename },
+            data
         });
 
         return res.json({

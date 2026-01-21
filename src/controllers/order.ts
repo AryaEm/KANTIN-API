@@ -1256,8 +1256,8 @@ export const getStanPelanggan = async (req: Request, res: Response) => {
                 pelangganMap.set(trx.siswa.id, {
                     id_siswa: trx.siswa.id,
                     nama_siswa: trx.siswa.nama_siswa,
-                    foto: trx.siswa.foto,
                     telp: trx.siswa.telp,
+                    foto: trx.siswa.foto,
                     total_transaksi: 1,
                     total_item,
                     total_pengeluaran: total_harga,
