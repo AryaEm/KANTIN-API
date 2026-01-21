@@ -560,3 +560,73 @@ export const deleteMenu = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const getBestSellerForAdminStan = async (req: Request, res: Response) => {
+  try {
+    const authUser = res.locals.user;
+
+    if (!authUser) {
+      return res.status(401).json({
+        status: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const stan = await prisma.stan.findFirst({
+      where: { id_user: authUser.id },
+    });
+
+    if (!stan) {
+      return res.status(404).json({
+        status: false,
+        message: "Stan tidak ditemukan untuk user ini.",
+      });
+    }
+
+    const bestSellers = await prisma.menu.findMany({
+      where: { id_stan: stan.id },
+      orderBy: {
+        detailTransaksi: {
+          _count: "desc",
+        },
+      },
+      take: 3,
+      select: {
+        id: true,
+        nama_menu: true,
+        deskripsi: true,
+        jenis: true,
+        harga: true,
+        foto: true,
+        status: true,
+        _count: {
+          select: { detailTransaksi: true },
+        },
+      },
+    });
+
+    const mappedBestSellers = bestSellers.map(menu => ({
+      id: menu.id,
+      name: menu.nama_menu,
+      description: menu.deskripsi,
+      jenis_menu: menu.jenis,
+      price: menu.harga,
+      image: menu.foto,
+      status: menu.status,
+      totalTerjual: menu._count.detailTransaksi,
+    }));
+
+    return res.status(200).json({
+      status: true,
+      message: `Best seller (${stan.nama_stan}) berhasil ditampilkan`,
+      data: mappedBestSellers,
+    });
+
+  } catch (error) {
+    console.error("GET BEST SELLER ERROR:", error);
+    return res.status(500).json({
+      status: false,
+      message: "Terjadi kesalahan server",
+    });
+  }
+};
