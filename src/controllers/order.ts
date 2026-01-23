@@ -552,13 +552,8 @@ export const getStanHistorySelesai = async (req: Request, res: Response) => {
 export const getSiswaHistory = async (req: Request, res: Response) => {
     try {
         const authUser = res.locals.user;
-        const { startDate, endDate } = res.locals.filter || {};
-
         if (!authUser) {
-            return res.status(401).json({
-                status: false,
-                message: "Unauthorized",
-            });
+            return res.status(401).json({ status: false, message: "Unauthorized" });
         }
 
         const siswa = await prisma.siswa.findFirst({
@@ -572,46 +567,63 @@ export const getSiswaHistory = async (req: Request, res: Response) => {
             });
         }
 
+        const { type, year, month, week } = req.query;
+
+        let startDate: Date | undefined;
+        let endDate: Date | undefined;
+
+        if (type === "month") {
+            if (!year || !month) {
+                return res.status(400).json({
+                    status: false,
+                    message: "Parameter year dan month wajib diisi.",
+                });
+            }
+
+            const y = Number(year);
+            const m = Number(month) - 1;
+
+            startDate = new Date(y, m, 1);
+            endDate = new Date(y, m + 1, 1);
+        }
+
+        if (type === "week") {
+            if (!year || !week) {
+                return res.status(400).json({
+                    status: false,
+                    message: "Parameter year dan week wajib diisi.",
+                });
+            }
+
+            const y = Number(year);
+            const w = Number(week);
+
+            const firstDayOfYear = new Date(y, 0, 1);
+            const dayOffset = (firstDayOfYear.getDay() + 6) % 7;
+
+            startDate = new Date(y, 0, 1 + (w - 1) * 7 - dayOffset);
+            endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 7);
+        }
+
         const transaksiList = await prisma.transaksi.findMany({
             where: {
                 id_siswa: siswa.id,
                 status: "selesai",
                 ...(startDate && endDate
-                    ? {
-                        tanggal: {
-                            gte: startDate,
-                            lt: endDate,
-                        },
-                    }
+                    ? { tanggal: { gte: startDate, lt: endDate } }
                     : {}),
             },
             orderBy: { tanggal: "desc" },
             include: {
-                stan: {
-                    select: { id: true, nama_stan: true },
-                },
-                detail: {
-                    select: {
-                        id_menu: true,
-                        nama_menu: true,
-                        harga_asli: true,
-                        persentase_diskon: true,
-                        harga_setelah_diskon: true,
-                        qty: true,
-                        subtotal: true,
-                    },
-                },
+                stan: { select: { id: true, nama_stan: true } },
+                detail: true,
             },
         });
 
         const data = transaksiList.map((trx) => {
             const total_harga = trx.detail.reduce(
                 (sum, item) => sum + item.subtotal,
-                0
-            );
-
-            const total_item = trx.detail.reduce(
-                (sum, item) => sum + item.qty,
                 0
             );
 
@@ -622,7 +634,6 @@ export const getSiswaHistory = async (req: Request, res: Response) => {
                 status: trx.status,
                 stan: trx.stan,
                 items: trx.detail,
-                total_item,
                 total_harga,
             };
         });
@@ -630,6 +641,7 @@ export const getSiswaHistory = async (req: Request, res: Response) => {
         return res.status(200).json({
             status: true,
             message: "Riwayat transaksi siswa",
+            filter: { type: type ?? "all", startDate, endDate },
             data,
         });
     } catch (error) {
@@ -640,6 +652,7 @@ export const getSiswaHistory = async (req: Request, res: Response) => {
         });
     }
 };
+
 
 export const getSiswaOngoingOrder = async (req: Request, res: Response) => {
     try {
