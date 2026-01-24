@@ -1094,10 +1094,10 @@ export const rejectOrder = async (req: Request, res: Response) => {
 
 export const getTransaksiNotaById = async (req: Request, res: Response) => {
     try {
-        const user = res.locals.user;
+        const authUser = res.locals.user;
         const id_transaksi = Number(req.params.id);
 
-        if (!user) {
+        if (!authUser) {
             return res.status(401).json({
                 status: false,
                 message: "Unauthorized",
@@ -1111,24 +1111,15 @@ export const getTransaksiNotaById = async (req: Request, res: Response) => {
             });
         }
 
-        // 🔐 FILTER KEPEMILIKAN DATA
-        const whereCondition: any = {
-            id: id_transaksi,
-        };
-
-        if (user.role === "siswa") {
-            whereCondition.siswa_id = user.id;
-        }
-
-        if (user.role === "admin_stan") {
-            whereCondition.stan_id = user.stan_id;
-        }
-
         const transaksi = await prisma.transaksi.findFirst({
-            where: whereCondition,
+            where: {
+                id: id_transaksi,
+                id_siswa: authUser.id,
+            },
             include: {
                 stan: {
                     select: {
+                        id: true,
                         nama_stan: true,
                         nama_pemilik: true,
                         telp: true,
@@ -1136,6 +1127,7 @@ export const getTransaksiNotaById = async (req: Request, res: Response) => {
                 },
                 siswa: {
                     select: {
+                        id: true,
                         nama_siswa: true,
                         telp: true,
                     },
@@ -1153,11 +1145,10 @@ export const getTransaksiNotaById = async (req: Request, res: Response) => {
             },
         });
 
-        // ❗ Kalau tidak ketemu → bukan miliknya / tidak ada
         if (!transaksi) {
-            return res.status(403).json({
+            return res.status(404).json({
                 status: false,
-                message: "Anda tidak berhak mengakses transaksi ini.",
+                message: "Transaksi tidak ditemukan.",
             });
         }
 
@@ -1215,106 +1206,75 @@ export const getTransaksiNotaById = async (req: Request, res: Response) => {
 };
 
 export const downloadNotaPdf = async (req: Request, res: Response) => {
-  try {
-    const user = res.locals.user;
-    const id = Number(req.params.id);
+    try {
+        const authUser = res.locals.user; 
+        const id = Number(req.params.id);
 
-    if (!user) {
-      return res.status(401).end();
+        const transaksi = await prisma.transaksi.findFirst({
+            where: {
+                id,
+                id_siswa: authUser.id,
+            },
+            include: {
+                stan: true,
+                siswa: true,
+                detail: true,
+            },
+        });
+
+        if (!transaksi) {
+            return res.status(404).json({ message: "Transaksi tidak ditemukan" });
+        }
+
+        const doc = new PDFDocument({ margin: 40 });
+
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename=invoice-${id}.pdf`
+        );
+
+        doc.pipe(res);
+
+        doc.fontSize(18).text("INVOICE", { align: "center" });
+        doc.moveDown();
+
+        doc.fontSize(12);
+        doc.text(`ID Transaksi: ${transaksi.id}`);
+        doc.text(`Tanggal: ${transaksi.tanggal.toLocaleDateString("id-ID")}`);
+        doc.text(`Status: ${transaksi.status}`);
+        doc.moveDown();
+
+        doc.text(`Stan: ${transaksi.stan.nama_stan}`);
+        doc.text(`Pembeli: ${transaksi.siswa.nama_siswa}`);
+        doc.moveDown();
+
+        doc.text("Detail Pesanan:");
+        doc.moveDown(0.5);
+
+        transaksi.detail.forEach((item) => {
+            doc.text(
+                `- ${item.nama_menu} x${item.qty} = Rp ${item.subtotal.toLocaleString(
+                    "id-ID"
+                )}`
+            );
+        });
+
+        const total = transaksi.detail.reduce((s, i) => s + i.subtotal, 0);
+
+        doc.moveDown();
+        doc.fontSize(13).text(`Total: Rp ${total.toLocaleString("id-ID")}`, {
+            align: "right",
+        });
+
+        doc.end();
+
+    } catch (err) {
+        console.error("PDF ERROR:", err);
+        if (!res.headersSent) {
+            res.status(500).json({ message: "Gagal generate PDF" });
+        }
     }
-
-    if (isNaN(id)) {
-      return res.status(400).end();
-    }
-
-    // 🔐 FILTER KEPEMILIKAN DATA
-    const whereCondition: any = { id };
-
-    if (user.role === "siswa") {
-      whereCondition.siswa_id = user.id;
-    }
-
-    if (user.role === "admin_stan") {
-      whereCondition.stan_id = user.stan_id;
-    }
-
-    const transaksi = await prisma.transaksi.findFirst({
-      where: whereCondition,
-      include: {
-        stan: {
-          select: {
-            nama_stan: true,
-          },
-        },
-        siswa: {
-          select: {
-            nama_siswa: true,
-          },
-        },
-        detail: {
-          select: {
-            nama_menu: true,
-            qty: true,
-            subtotal: true,
-          },
-        },
-      },
-    });
-
-    if (!transaksi) {
-      return res.status(403).end();
-    }
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=invoice-${id}.pdf`
-    );
-
-    const doc = new PDFDocument({ margin: 40 });
-    doc.pipe(res);
-
-    doc.fontSize(18).text("INVOICE", { align: "center" });
-    doc.moveDown();
-
-    doc.fontSize(11);
-    doc.text(`ID Transaksi: ${transaksi.id}`);
-    doc.text(
-      `Tanggal: ${transaksi.tanggal.toLocaleDateString("id-ID")}`
-    );
-    doc.text(`Status: ${transaksi.status}`);
-    doc.moveDown();
-
-    doc.text(`Stan: ${transaksi.stan.nama_stan}`);
-    doc.text(`Pembeli: ${transaksi.siswa.nama_siswa}`);
-    doc.moveDown();
-
-    doc.text("Detail Pesanan:");
-    doc.moveDown(0.5);
-
-    transaksi.detail.forEach((item) => {
-      doc.text(
-        `- ${item.nama_menu} x${item.qty} = Rp ${item.subtotal.toLocaleString(
-          "id-ID"
-        )}`
-      );
-    });
-
-    const total = transaksi.detail.reduce((s, i) => s + i.subtotal, 0);
-
-    doc.moveDown();
-    doc.fontSize(13).text(
-      `Total: Rp ${total.toLocaleString("id-ID")}`,
-      { align: "right" }
-    );
-
-    doc.end();
-  } catch (err) {
-    console.error("PDF ERROR:", err);
-    if (!res.headersSent) {
-      res.status(500).end();
-    }
-  }
 };
 
 export const getStanPelanggan = async (req: Request, res: Response) => {
