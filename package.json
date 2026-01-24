@@ -30,7 +30,9 @@
   "dependencies": {
     "@prisma/client": "^5.19.1",
     "@supabase/supabase-js": "^2.90.1",
+    "@types/cookie-parser": "^1.4.10",
     "@types/pdfkit": "^0.17.4",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dayjs": "^1.11.19",
     "dotenv": "^17.2.3",
