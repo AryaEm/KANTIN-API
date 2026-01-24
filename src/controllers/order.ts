@@ -4,6 +4,7 @@ import { StatusTransaksi } from "@prisma/client";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import weekOfYear from "dayjs/plugin/weekOfYear";
+import PDFDocument from "pdfkit";
 import { prisma } from "../lib/prisma";
 
 dayjs.extend(weekOfYear);
@@ -1091,115 +1092,67 @@ export const rejectOrder = async (req: Request, res: Response) => {
     }
 };
 
-export const getTransaksiNotaById = async (req: Request, res: Response) => {
+export const downloadNotaPdf = async (req: Request, res: Response) => {
     try {
-        const authUser = res.locals.user;
         const id_transaksi = Number(req.params.id);
 
-        if (!authUser) {
-            return res.status(401).json({
-                status: false,
-                message: "Unauthorized",
-            });
-        }
-
-        if (isNaN(id_transaksi)) {
-            return res.status(400).json({
-                status: false,
-                message: "ID transaksi tidak valid.",
-            });
-        }
-
         const transaksi = await prisma.transaksi.findFirst({
-            where: {
-                id: id_transaksi,
-            },
+            where: { id: id_transaksi },
             include: {
-                stan: {
-                    select: {
-                        id: true,
-                        nama_stan: true,
-                        nama_pemilik: true,
-                        telp: true,
-                    },
-                },
-                siswa: {
-                    select: {
-                        id: true,
-                        nama_siswa: true,
-                        telp: true,
-                    },
-                },
-                detail: {
-                    select: {
-                        nama_menu: true,
-                        harga_asli: true,
-                        persentase_diskon: true,
-                        harga_setelah_diskon: true,
-                        qty: true,
-                        subtotal: true,
-                    },
-                },
+                stan: true,
+                siswa: true,
+                detail: true,
             },
         });
 
         if (!transaksi) {
-            return res.status(404).json({
-                status: false,
-                message: "Transaksi tidak ditemukan.",
-            });
+            return res.status(404).json({ message: "Transaksi tidak ditemukan" });
         }
 
-        const total_item = transaksi.detail.reduce(
-            (sum, item) => sum + item.qty,
-            0
+        const doc = new PDFDocument({ margin: 40 });
+
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename=invoice-${transaksi.id}.pdf`
         );
 
-        const total_harga = transaksi.detail.reduce(
-            (sum, item) => sum + item.subtotal,
-            0
-        );
+        doc.pipe(res);
 
-        const nota = {
-            id_transaksi: transaksi.id,
-            tanggal: transaksi.tanggal,
-            status: transaksi.status,
+        doc.fontSize(18).text("INVOICE", { align: "center" });
+        doc.moveDown();
 
-            stan: {
-                nama_stan: transaksi.stan.nama_stan,
-                nama_pemilik: transaksi.stan.nama_pemilik,
-                telp: transaksi.stan.telp,
-            },
+        doc.fontSize(12).text(`ID Transaksi: ${transaksi.id}`);
+        doc.text(`Tanggal: ${transaksi.tanggal.toLocaleDateString("id-ID")}`);
+        doc.text(`Status: ${transaksi.status}`);
+        doc.moveDown();
 
-            siswa: {
-                nama_siswa: transaksi.siswa.nama_siswa,
-                telp: transaksi.siswa.telp,
-            },
+        doc.text(`Stan: ${transaksi.stan.nama_stan}`);
+        doc.text(`Pembeli: ${transaksi.siswa.nama_siswa}`);
+        doc.moveDown();
 
-            items: transaksi.detail.map((item) => ({
-                nama_menu: item.nama_menu,
-                qty: item.qty,
-                harga_asli: item.harga_asli,
-                diskon_persen: item.persentase_diskon,
-                harga_setelah_diskon: item.harga_setelah_diskon,
-                subtotal: item.subtotal,
-            })),
+        doc.text("Detail Pesanan:");
+        doc.moveDown(0.5);
 
-            total_item,
-            total_harga,
-        };
-
-        return res.status(200).json({
-            status: true,
-            message: "Bukti transaksi",
-            data: nota,
+        transaksi.detail.forEach((item) => {
+            doc.text(
+                `- ${item.nama_menu} x${item.qty} = Rp ${item.subtotal.toLocaleString(
+                    "id-ID"
+                )}`
+            );
         });
-    } catch (error) {
-        console.error("GET TRANSAKSI NOTA ERROR:", error);
-        return res.status(500).json({
-            status: false,
-            message: "Terjadi kesalahan server.",
+
+        const total = transaksi.detail.reduce((s, i) => s + i.subtotal, 0);
+
+        doc.moveDown();
+        doc.fontSize(13).text(`Total: Rp ${total.toLocaleString("id-ID")}`, {
+            align: "right",
         });
+
+        doc.end();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Gagal generate PDF" });
     }
 };
 

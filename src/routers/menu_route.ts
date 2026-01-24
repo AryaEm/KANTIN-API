@@ -11,7 +11,6 @@ app.get("/stan", [verifyToken, verifyRole(["siswa"])], getAllStan); // MENAMPILK
 app.get("/menu-kantin", [verifyToken, verifyRole(["siswa"])], getAllMenusForSiswa); // MENAMPILKAN MENU KANTIN (BISA FILTER KANTIN)
 app.get("/menu-admin", [verifyToken, verifyRole(["admin_stan"])], getMenusForAdminStan); // MENAMPILKAN MENU PER KANTIN (SESUAI USER LOGIN) 
 app.get("/best-seller", [verifyToken, verifyRole(["admin_stan"])], getBestSellerForAdminStan)
-
 app.get("/stan/:id/menu", [verifyToken, verifyRole(["siswa"])], getMenuByStanId); // MENAMPILKAN MENU PER KANTIN (SESUAI STAN YANG DIPILIH SISWA) 
 // /menu/stan/1/menu?jenis=makanan
 // /menu/stan/1/menu?iskon=true
