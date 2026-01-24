@@ -1205,75 +1205,76 @@ export const getTransaksiNotaById = async (req: Request, res: Response) => {
 };
 
 export const downloadNotaPdf = async (req: Request, res: Response) => {
-  try {
-    const id = Number(req.params.id);
+    try {
+        const id = Number(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).end();
+        }
 
-    const transaksi = await prisma.transaksi.findFirst({
-      where: { id },
-      include: {
-        stan: true,
-        siswa: true,
-        detail: true,
-      },
-    });
+        const transaksi = await prisma.transaksi.findFirst({
+            where: { id },
+            include: {
+                stan: true,
+                siswa: true,
+                detail: true,
+            },
+        });
 
-    if (!transaksi) {
-      return res.status(404).json({ message: "Transaksi tidak ditemukan" });
+        if (!transaksi) {
+            return res.status(404).end();
+        }
+
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename=invoice-${id}.pdf`
+        );
+
+        const doc = new PDFDocument({ margin: 40 });
+        doc.pipe(res);
+
+        // ===== ISI PDF =====
+        doc.fontSize(18).text("INVOICE", { align: "center" });
+        doc.moveDown();
+
+        doc.fontSize(11);
+        doc.text(`ID Transaksi: ${transaksi.id}`);
+        doc.text(
+            `Tanggal: ${transaksi.tanggal.toLocaleDateString("id-ID")}`
+        );
+        doc.text(`Status: ${transaksi.status}`);
+        doc.moveDown();
+
+        doc.text(`Stan: ${transaksi.stan.nama_stan}`);
+        doc.text(`Pembeli: ${transaksi.siswa.nama_siswa}`);
+        doc.moveDown();
+
+        doc.text("Detail Pesanan:");
+        doc.moveDown(0.5);
+
+        transaksi.detail.forEach((item) => {
+            doc.text(
+                `- ${item.nama_menu} x${item.qty} = Rp ${item.subtotal.toLocaleString(
+                    "id-ID"
+                )}`
+            );
+        });
+
+        const total = transaksi.detail.reduce((s, i) => s + i.subtotal, 0);
+
+        doc.moveDown();
+        doc.fontSize(13).text(
+            `Total: Rp ${total.toLocaleString("id-ID")}`,
+            { align: "right" }
+        );
+
+        doc.end();
+    } catch (err) {
+        console.error("PDF ERROR:", err);
+        if (!res.headersSent) {
+            res.status(500).end();
+        }
     }
-
-    const doc = new PDFDocument({ margin: 40 });
-
-    // ⬇️ HEADER WAJIB SEBELUM PIPE
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=invoice-${id}.pdf`
-    );
-
-    // ⬇️ PIPE DULU
-    doc.pipe(res);
-
-    // ⬇️ BARU TULIS KONTEN
-    doc.fontSize(18).text("INVOICE", { align: "center" });
-    doc.moveDown();
-
-    doc.fontSize(12);
-    doc.text(`ID Transaksi: ${transaksi.id}`);
-    doc.text(`Tanggal: ${transaksi.tanggal.toLocaleDateString("id-ID")}`);
-    doc.text(`Status: ${transaksi.status}`);
-    doc.moveDown();
-
-    doc.text(`Stan: ${transaksi.stan.nama_stan}`);
-    doc.text(`Pembeli: ${transaksi.siswa.nama_siswa}`);
-    doc.moveDown();
-
-    doc.text("Detail Pesanan:");
-    doc.moveDown(0.5);
-
-    transaksi.detail.forEach((item) => {
-      doc.text(
-        `- ${item.nama_menu} x${item.qty} = Rp ${item.subtotal.toLocaleString(
-          "id-ID"
-        )}`
-      );
-    });
-
-    const total = transaksi.detail.reduce((s, i) => s + i.subtotal, 0);
-
-    doc.moveDown();
-    doc.fontSize(13).text(`Total: Rp ${total.toLocaleString("id-ID")}`, {
-      align: "right",
-    });
-
-    // ⬇️ PALING AKHIR
-    doc.end();
-
-  } catch (err) {
-    console.error("PDF ERROR:", err);
-    if (!res.headersSent) {
-      res.status(500).json({ message: "Gagal generate PDF" });
-    }
-  }
 };
 
 export const getStanPelanggan = async (req: Request, res: Response) => {
