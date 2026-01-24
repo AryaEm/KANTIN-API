@@ -6,7 +6,6 @@ console.log("SUPABASE_URL =>", process.env.SUPABASE_URL);
 
 import express from 'express'
 import cors from 'cors'
-import cookieParser from "cookie-parser";
 import swaggerJsDoc from 'swagger-jsdoc'
 import swaggerUi from 'swagger-ui-express'
 import path from 'path'
@@ -19,7 +18,6 @@ import OrderRoute from './routers/order_route'
 import { PORT } from './global'
 
 const app = express()
-app.use(cookieParser());
 
 app.use(
   cors({
