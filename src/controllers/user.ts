@@ -81,93 +81,124 @@ export const deleteUser = async (req: Request, res: Response) => {
 };
 
 export const updateSiswa = async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
-        const authUser = res.locals.user;
+  try {
+    const { id } = req.params;
+    const authUser = res.locals.user;
 
-        if (!authUser) {
-            return res.status(401).json({
-                status: false,
-                message: "Unauthorized",
-            });
-        }
-
-        if (authUser.role !== "siswa") {
-            return res.status(403).json({
-                status: false,
-                message: "Akses ditolak. Hanya siswa yang dapat update siswa.",
-            });
-        }
-
-        const {
-            nama_siswa,
-            alamat,
-            telp,
-            jenis_kelamin,
-            foto,
-            username,
-            password,
-        } = req.body;
-
-        const siswa = await prisma.siswa.findFirst({
-            where: { id: Number(id) },
-            include: { user: true },
-        });
-
-        if (!siswa) {
-            return res.status(404).json({
-                status: false,
-                message: "Data siswa tidak ditemukan",
-            });
-        }
-
-        if (siswa.id_user !== authUser.id) {
-            return res.status(403).json({
-                status: false,
-                message: "Tidak boleh mengupdate data siswa milik orang lain.",
-            });
-        }
-
-        // Update user
-        await prisma.user.update({
-            where: { id: siswa.id_user },
-            data: {
-                username: username ?? siswa.user.username,
-                password: password ? md5(password) : siswa.user.password,
-            },
-        });
-
-        // Update siswa
-        await prisma.siswa.update({
-            where: { id: Number(id) },
-            data: {
-                nama_siswa: nama_siswa ?? siswa.nama_siswa,
-                alamat: alamat ?? siswa.alamat,
-                telp: telp ?? siswa.telp,
-                jenis_kelamin: jenis_kelamin ?? siswa.jenis_kelamin,
-                foto: foto ?? siswa.foto,
-            },
-        });
-
-        const profile = await prisma.user.findFirst({
-            where: { id: authUser.id },
-            include: {
-                siswa: true,
-            },
-        });
-
-        return res.status(200).json({
-            status: true,
-            message: "Profil siswa berhasil diperbarui",
-            data: profile,
-        });
-    } catch (error) {
-        return res.status(500).json({
-            status: false,
-            message: `Terjadi kesalahan server`,
-        });
+    if (!authUser) {
+      return res.status(401).json({ status: false, message: "Unauthorized" });
     }
+
+    if (authUser.role !== "siswa") {
+      return res.status(403).json({
+        status: false,
+        message: "Akses ditolak. Hanya siswa yang dapat update siswa.",
+      });
+    }
+
+    const {
+      nama_siswa,
+      alamat,
+      telp,
+      jenis_kelamin,
+      foto,
+      username,
+      password,
+    } = req.body;
+
+    const siswa = await prisma.siswa.findFirst({
+      where: { id: Number(id) },
+      include: { user: true },
+    });
+
+    if (!siswa) {
+      return res.status(404).json({
+        status: false,
+        message: "Data siswa tidak ditemukan",
+      });
+    }
+
+    if (siswa.id_user !== authUser.id) {
+      return res.status(403).json({
+        status: false,
+        message: "Tidak boleh mengupdate data siswa milik orang lain.",
+      });
+    }
+
+    // ======================
+    // UPDATE USER
+    // ======================
+    const userData: any = {};
+
+    if (typeof username === "string" && username.trim() !== "") {
+      userData.username = username;
+    }
+
+    if (typeof password === "string" && password.trim() !== "") {
+      userData.password = md5(password);
+    }
+
+    if (Object.keys(userData).length > 0) {
+      await prisma.user.update({
+        where: { id: siswa.id_user },
+        data: userData,
+      });
+    }
+
+    // ======================
+    // UPDATE SISWA
+    // ======================
+    const siswaData: any = {};
+
+    if (typeof nama_siswa === "string" && nama_siswa.trim() !== "") {
+      siswaData.nama_siswa = nama_siswa;
+    }
+
+    if (typeof alamat === "string" && alamat.trim() !== "") {
+      siswaData.alamat = alamat;
+    }
+
+    if (typeof telp === "string" && telp.trim() !== "") {
+      siswaData.telp = telp;
+    }
+
+    if (jenis_kelamin === "laki_laki" || jenis_kelamin === "perempuan") {
+      siswaData.jenis_kelamin = jenis_kelamin;
+    }
+
+    if (typeof foto === "string" && foto.trim() !== "") {
+      siswaData.foto = foto;
+    }
+
+    if (Object.keys(siswaData).length > 0) {
+      await prisma.siswa.update({
+        where: { id: Number(id) },
+        data: siswaData,
+      });
+    }
+
+    // ======================
+    // RETURN FULL PROFILE
+    // ======================
+    const profile = await prisma.user.findFirst({
+      where: { id: authUser.id },
+      include: { siswa: true },
+    });
+
+    return res.status(200).json({
+      status: true,
+      message: "Profil siswa berhasil diperbarui",
+      data: profile,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: false,
+      message: "Terjadi kesalahan server",
+    });
+  }
 };
+
 
 
 export const updateAdminStan = async (req: Request, res: Response) => {
