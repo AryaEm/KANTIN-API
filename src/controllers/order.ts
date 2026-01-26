@@ -1375,7 +1375,7 @@ export const downloadNotaPdf = async (req: Request, res: Response) => {
             doc.text(item.nama_menu, 65, yPosition + 5, { width: 250, lineBreak: false });
             doc.fillColor(gray);
             doc.text(`${item.qty}`, 320, yPosition + 5, { width: 60, align: 'center', lineBreak: false });
-            doc.text(`Rp ${(item.subtotal / item.qty).toLocaleString("id-ID")}`, 
+            doc.text(`Rp ${(item.subtotal / item.qty).toLocaleString("id-ID")}`,
                      385, yPosition + 5, { width: 80, align: 'right', lineBreak: false });
             doc.fillColor(darkText);
             doc.text(`Rp ${item.subtotal.toLocaleString("id-ID")}`, 
