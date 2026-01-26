@@ -1258,7 +1258,7 @@ export const downloadNotaPdf = async (req: Request, res: Response) => {
         // INVOICE title (kanan atas)
         doc.fontSize(48)
             .font('Helvetica-Bold')
-            .text('INVOICE', 350, 45, { align: 'right', width: 185 });
+            .text('INVOICE', 350, 45, { align: 'right', width: 200 });
 
         doc.fontSize(10)
             .font('Helvetica')
