@@ -81,125 +81,87 @@ export const deleteUser = async (req: Request, res: Response) => {
 };
 
 export const updateSiswa = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const authUser = res.locals.user;
+    try {
+        const { id } = req.params;
+        const authUser = res.locals.user;
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
 
-    if (!authUser) {
-      return res.status(401).json({ status: false, message: "Unauthorized" });
+        if (authUser.role !== "siswa") {
+            return res.status(403).json({
+                status: false,
+                message: "Akses ditolak. Hanya siswa yang dapat update siswa."
+            });
+        }
+
+        const {
+            nama_siswa,
+            alamat,
+            telp,
+            jenis_kelamin,
+            foto,
+            username,
+            password
+        } = req.body;
+
+        const findSiswa = await prisma.siswa.findFirst({
+            where: { id: Number(id) },
+            include: { user: true }
+        });
+
+        if (!findSiswa) {
+            return res.status(404).json({
+                status: false,
+                message: "Data siswa tidak ditemukan"
+            });
+        }
+
+        if (findSiswa.id_user !== authUser.id) {
+            return res.status(403).json({
+                status: false,
+                message: "Tidak boleh mengupdate data siswa milik orang lain."
+            });
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: findSiswa.id_user },
+            data: {
+                username: username || findSiswa.user.username,
+                password: password ? md5(password) : findSiswa.user.password
+            }
+        });
+
+        const updatedSiswa = await prisma.siswa.update({
+            where: { id: Number(id) },
+            data: {
+                nama_siswa: nama_siswa !== undefined ? nama_siswa : findSiswa.nama_siswa,
+                alamat: alamat !== undefined ? alamat : findSiswa.alamat,
+                telp: telp !== undefined ? telp : findSiswa.telp,
+                jenis_kelamin: jenis_kelamin !== undefined ? jenis_kelamin : findSiswa.jenis_kelamin,
+                foto: foto !== undefined ? foto : findSiswa.foto
+            }
+        })
+
+        return res.status(200).json({
+            status: true,
+            message: "Siswa berhasil diperbarui",
+            data: {
+                user: updatedUser,
+                siswa: updatedSiswa
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            status: false,
+            message: `Terjadi kesalahan: ${error}`
+        });
     }
-
-    if (authUser.role !== "siswa") {
-      return res.status(403).json({
-        status: false,
-        message: "Akses ditolak. Hanya siswa yang dapat update siswa.",
-      });
-    }
-
-    const {
-      nama_siswa,
-      alamat,
-      telp,
-      jenis_kelamin,
-      foto,
-      username,
-      password,
-    } = req.body;
-
-    const siswa = await prisma.siswa.findFirst({
-      where: { id: Number(id) },
-      include: { user: true },
-    });
-
-    if (!siswa) {
-      return res.status(404).json({
-        status: false,
-        message: "Data siswa tidak ditemukan",
-      });
-    }
-
-    if (siswa.id_user !== authUser.id) {
-      return res.status(403).json({
-        status: false,
-        message: "Tidak boleh mengupdate data siswa milik orang lain.",
-      });
-    }
-
-    // ======================
-    // UPDATE USER
-    // ======================
-    const userData: any = {};
-
-    if (typeof username === "string" && username.trim() !== "") {
-      userData.username = username;
-    }
-
-    if (typeof password === "string" && password.trim() !== "") {
-      userData.password = md5(password);
-    }
-
-    if (Object.keys(userData).length > 0) {
-      await prisma.user.update({
-        where: { id: siswa.id_user },
-        data: userData,
-      });
-    }
-
-    // ======================
-    // UPDATE SISWA
-    // ======================
-    const siswaData: any = {};
-
-    if (typeof nama_siswa === "string" && nama_siswa.trim() !== "") {
-      siswaData.nama_siswa = nama_siswa;
-    }
-
-    if (typeof alamat === "string" && alamat.trim() !== "") {
-      siswaData.alamat = alamat;
-    }
-
-    if (typeof telp === "string" && telp.trim() !== "") {
-      siswaData.telp = telp;
-    }
-
-    if (jenis_kelamin === "laki_laki" || jenis_kelamin === "perempuan") {
-      siswaData.jenis_kelamin = jenis_kelamin;
-    }
-
-    if (typeof foto === "string" && foto.trim() !== "") {
-      siswaData.foto = foto;
-    }
-
-    if (Object.keys(siswaData).length > 0) {
-      await prisma.siswa.update({
-        where: { id: Number(id) },
-        data: siswaData,
-      });
-    }
-
-    // ======================
-    // RETURN FULL PROFILE
-    // ======================
-    const profile = await prisma.user.findFirst({
-      where: { id: authUser.id },
-      include: { siswa: true },
-    });
-
-    return res.status(200).json({
-      status: true,
-      message: "Profil siswa berhasil diperbarui",
-      data: profile,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      status: false,
-      message: "Terjadi kesalahan server",
-    });
-  }
 };
-
-
 
 export const updateAdminStan = async (req: Request, res: Response) => {
     try {
@@ -285,13 +247,6 @@ export const updateFotoSiswa = async (req: Request, res: Response) => {
         const { id } = req.params;
         const authUser = res.locals.user;
 
-        if (!authUser) {
-            return res.status(401).json({
-                status: false,
-                message: "Unauthorized",
-            });
-        }
-
         const siswa = await prisma.siswa.findFirst({
             where: { id: Number(id) },
         });
@@ -299,18 +254,19 @@ export const updateFotoSiswa = async (req: Request, res: Response) => {
         if (!siswa) {
             return res.status(404).json({
                 status: false,
-                message: "Data siswa tidak ditemukan",
+                message: "User tidak ada.",
             });
         }
 
         if (siswa.id_user !== authUser.id) {
             return res.status(403).json({
                 status: false,
-                message: "Tidak boleh mengupdate foto siswa milik orang lain",
+                message: "Tidak boleh mengupdate foto siswa milik orang lain.",
             });
         }
 
-        let fotoUrl = siswa.foto;
+        const data: any = {};
+        let oldFotoPath: string | null = null;
 
         if (req.file) {
             const ext = req.file.originalname.split(".").pop();
@@ -326,39 +282,35 @@ export const updateFotoSiswa = async (req: Request, res: Response) => {
             if (error) {
                 return res.status(500).json({
                     status: false,
-                    message: "Gagal upload foto",
+                    message: "Gagal upload foto user",
+                    error: error.message,
                 });
             }
 
-            fotoUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/foto_siswa/${fileName}`;
+            data.foto = `${process.env.SUPABASE_URL}/storage/v1/object/public/foto_siswa/${fileName}`;
+
+            if (siswa.foto) {
+                oldFotoPath = siswa.foto.split("/foto_siswa/")[1] ?? null;
+            }
         }
 
-        await prisma.siswa.update({
+        const updatePicture = await prisma.siswa.update({
             where: { id: Number(id) },
-            data: { foto: fotoUrl },
+            data
         });
 
-        // 🔥 RETURN FULL PROFILE
-        const profile = await prisma.user.findFirst({
-            where: { id: authUser.id },
-            include: {
-                siswa: true,
-            },
-        });
-
-        return res.status(200).json({
+        return res.json({
             status: true,
-            message: "Foto profil berhasil diperbarui",
-            data: profile,
+            data: updatePicture,
+            message: "Foto telah diganti",
         });
     } catch (error) {
-        return res.status(500).json({
+        return res.status(400).json({
             status: false,
-            message: "Terjadi kesalahan server",
+            error: String(error),
         });
     }
 };
-
 
 export const getProfile = async (req: Request, res: Response) => {
     try {
