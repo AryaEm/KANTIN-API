@@ -1403,7 +1403,7 @@ export const downloadNotaPdf = async (req: Request, res: Response) => {
            .text(`Rp ${total.toLocaleString("id-ID")}`, 360, yPosition + 28);
 
         // ==================== FOOTER ====================
-        yPosition = doc.page.height - 80;
+        yPosition += 60; // Posisi relatif dari total section, bukan dari page.height
 
         // Garis pembatas
         doc.moveTo(50, yPosition)
