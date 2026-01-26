@@ -20,7 +20,7 @@ app.delete("/delete/:id", [verifyToken, verifyRole(["siswa", "admin_stan"])], de
 app.get("/stan/pelanggan", [verifyToken, verifyRole(["admin_stan"])], getStanPelanggan)
 app.get("/nota/:id", [verifyToken, verifyRole(["siswa", "admin_stan"])], getTransaksiNotaById)
 app.get("/nota/:id/download", [verifyToken, verifyRole(["siswa", "admin_stan"])], downloadNotaPdf)
-app.get("/report/income", [verifyToken, verifyRole(["admin_stan"])], getIncome);                //report/income?type=month&year=2026&month=1
-app.get("/report/order", [verifyToken, verifyRole(["admin_stan"])], getOrder);                  //report/order?type=month&year=2026&month=1
+app.get("/report/income", [verifyToken, verifyRole(["admin_stan"])], getIncome);                        //report/income?type=month&year=2026&month=1
+app.get("/report/order", [verifyToken, verifyRole(["admin_stan"])], getOrder);                          //report/order?type=month&year=2026&month=1
 
 export default app  

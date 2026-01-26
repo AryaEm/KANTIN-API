@@ -1,4 +1,3 @@
-// 
 import { Request, Response } from "express";
 import { StatusTransaksi } from "@prisma/client";
 import dayjs from "dayjs";
@@ -1207,7 +1206,7 @@ export const getTransaksiNotaById = async (req: Request, res: Response) => {
 
 export const downloadNotaPdf = async (req: Request, res: Response) => {
     try {
-        const authUser = res.locals.user; 
+        const authUser = res.locals.user;
         const id = Number(req.params.id);
 
         const transaksi = await prisma.transaksi.findFirst({
@@ -1226,7 +1225,10 @@ export const downloadNotaPdf = async (req: Request, res: Response) => {
             return res.status(404).json({ message: "Transaksi tidak ditemukan" });
         }
 
-        const doc = new PDFDocument({ margin: 40 });
+        const doc = new PDFDocument({
+            margin: 0,
+            size: 'A4'
+        });
 
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader(
@@ -1236,36 +1238,178 @@ export const downloadNotaPdf = async (req: Request, res: Response) => {
 
         doc.pipe(res);
 
-        doc.fontSize(18).text("INVOICE", { align: "center" });
-        doc.moveDown();
+        // Warna
+        const darkBlue = '#3B4A6B';
+        const lightBlue = '#A4C3D2';
+        const white = '#FFFFFF';
 
-        doc.fontSize(12);
-        doc.text(`ID Transaksi: ${transaksi.id}`);
-        doc.text(`Tanggal: ${transaksi.tanggal.toLocaleDateString("id-ID")}`);
-        doc.text(`Status: ${transaksi.status}`);
-        doc.moveDown();
+        // Header dengan background biru
+        doc.rect(0, 0, 595, 200).fill(darkBlue);
 
-        doc.text(`Stan: ${transaksi.stan.nama_stan}`);
-        doc.text(`Pembeli: ${transaksi.siswa.nama_siswa}`);
-        doc.moveDown();
+        // Logo area (kiri atas)
+        doc.fillColor(white)
+            .fontSize(20)
+            .font('Helvetica-Bold')
+            .text('KANTIN', 60, 50)
+            .fontSize(10)
+            .font('Helvetica')
+            .text('Your Food Partner', 60, 75);
 
-        doc.text("Detail Pesanan:");
-        doc.moveDown(0.5);
+        // INVOICE title (kanan atas)
+        doc.fontSize(48)
+            .font('Helvetica-Bold')
+            .text('INVOICE', 350, 45, { align: 'right', width: 185 });
 
-        transaksi.detail.forEach((item) => {
-            doc.text(
-                `- ${item.nama_menu} x${item.qty} = Rp ${item.subtotal.toLocaleString(
-                    "id-ID"
-                )}`
-            );
-        });
+        doc.fontSize(10)
+            .font('Helvetica')
+            .text(`NO: ${transaksi.id.toString().padStart(10, '0')}-2024`, 350, 100, {
+                align: 'right',
+                width: 185
+            });
 
+        // Tanggal section
+        doc.fontSize(9)
+            .text('Tanggal', 350, 125, { align: 'right', width: 185 })
+            .fontSize(10)
+            .text(transaksi.tanggal.toLocaleDateString('id-ID', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }), 350, 138, { align: 'right', width: 185 });
+
+        // Rincian Kontak
+        doc.fontSize(10)
+            .font('Helvetica-Bold')
+            .text('Rincian Kontak', 60, 150);
+
+        const kontakY = 170;
+        doc.fontSize(8)
+            .font('Helvetica-Bold')
+            .text('STAN', 60, kontakY)
+            .font('Helvetica')
+            .text(transaksi.stan.nama_stan, 60, kontakY + 12);
+
+        // Strip biru muda
+        doc.rect(0, 200, 595, 20).fill(lightBlue);
+
+        // KEPADA section
+        doc.fillColor('#000000')
+            .fontSize(10)
+            .font('Helvetica-Bold')
+            .text('KEPADA:', 60, 240);
+
+        doc.fontSize(14)
+            .text(transaksi.siswa.nama_siswa, 60, 260);
+
+        // JUMLAH YANG HARUS DIBAYAR (kanan)
         const total = transaksi.detail.reduce((s, i) => s + i.subtotal, 0);
 
-        doc.moveDown();
-        doc.fontSize(13).text(`Total: Rp ${total.toLocaleString("id-ID")}`, {
-            align: "right",
+        doc.fontSize(10)
+            .font('Helvetica-Bold')
+            .text('JUMLAH YANG HARUS DIBAYAR', 350, 240, { align: 'right', width: 185 });
+
+        doc.fontSize(24)
+            .fillColor(darkBlue)
+            .text(`Rp ${total.toLocaleString('id-ID')}`, 350, 260, {
+                align: 'right',
+                width: 185
+            });
+
+        // Tabel header
+        const tableTop = 340;
+        doc.rect(0, tableTop, 595, 30).fill(darkBlue);
+
+        doc.fillColor(white)
+            .fontSize(10)
+            .font('Helvetica-Bold')
+            .text('Keterangan', 60, tableTop + 10, { width: 250 })
+            .text('Harga Unit', 310, tableTop + 10, { width: 80, align: 'right' })
+            .text('Kuantitas', 390, tableTop + 10, { width: 60, align: 'center' })
+            .text('Total', 450, tableTop + 10, { width: 85, align: 'right' });
+
+        // Tabel items
+        let yPosition = tableTop + 45;
+        doc.fillColor('#000000').font('Helvetica');
+
+        transaksi.detail.forEach((item, index) => {
+            // Alternating row colors
+            if (index % 2 === 0) {
+                doc.rect(0, yPosition - 5, 595, 40).fill('#F5F5F5');
+            }
+
+            doc.fillColor('#000000')
+                .fontSize(11)
+                .font('Helvetica-Bold')
+                .text(item.nama_menu, 60, yPosition, { width: 250 });
+
+            doc.fontSize(10)
+                .font('Helvetica')
+                .text(`Rp ${(item.subtotal / item.qty).toLocaleString('id-ID')}`, 310, yPosition, {
+                    width: 80,
+                    align: 'right'
+                })
+                .text(item.qty.toString(), 390, yPosition, {
+                    width: 60,
+                    align: 'center'
+                })
+                .text(`Rp ${item.subtotal.toLocaleString('id-ID')}`, 450, yPosition, {
+                    width: 85,
+                    align: 'right'
+                });
+
+            yPosition += 45;
         });
+
+        // Summary box (kanan bawah)
+        const summaryTop = yPosition + 20;
+        const summaryBox = 350;
+
+        doc.rect(summaryBox, summaryTop, 185, 80).fill(darkBlue);
+
+        doc.fillColor(white)
+            .fontSize(10)
+            .text('Sub Total :', summaryBox + 15, summaryTop + 15, { width: 80 })
+            .text(`Rp ${total.toLocaleString('id-ID')}`, summaryBox + 100, summaryTop + 15, {
+                width: 70,
+                align: 'right'
+            });
+
+        doc.text('Pajak :', summaryBox + 15, summaryTop + 35, { width: 80 })
+            .text('Rp 0', summaryBox + 100, summaryTop + 35, {
+                width: 70,
+                align: 'right'
+            });
+
+        doc.fontSize(11)
+            .font('Helvetica-Bold')
+            .text('Total :', summaryBox + 15, summaryTop + 55, { width: 80 })
+            .text(`Rp ${total.toLocaleString('id-ID')}`, summaryBox + 100, summaryTop + 55, {
+                width: 70,
+                align: 'right'
+            });
+
+        // Metode Pembayaran section
+        const paymentTop = summaryTop + 100;
+        doc.fillColor('#000000')
+            .fontSize(10)
+            .font('Helvetica-Bold')
+            .text('Metode Pembayaran', 60, paymentTop);
+
+        doc.fontSize(9)
+            .font('Helvetica')
+            .text(`STATUS: ${transaksi.status}`, 60, paymentTop + 20);
+
+        // Footer signature area
+        doc.fontSize(10)
+            .font('Helvetica-Bold')
+            .text('TERIMA KASIH', 450, paymentTop + 40, { align: 'right', width: 85 })
+            .fontSize(8)
+            .font('Helvetica-Oblique')
+            .text('Term & Condition', 450, paymentTop + 55, { align: 'right', width: 85 });
+
+        // Bottom strip
+        doc.rect(0, 820, 595, 22).fill(darkBlue);
 
         doc.end();
 
