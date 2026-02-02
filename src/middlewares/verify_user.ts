@@ -2,13 +2,41 @@ import { NextFunction, Request, Response } from "express";
 import Joi from 'joi'
 
 const registerDataSiswa = Joi.object({
-    username: Joi.string().required(),
-    password: Joi.string().min(8).required(),
-    nama_siswa: Joi.string().required(),
-    alamat: Joi.string().allow("").optional(),
-    telp: Joi.string().required(),
-    foto: Joi.allow().optional(),
-    jenis_kelamin: Joi.string().valid("laki_laki", "perempuan").optional(),
+    username: Joi.string()
+        .trim()
+        .lowercase()
+        .min(4)
+        .max(30)
+        .pattern(/^[a-zA-Z0-9_]+$/)
+        .required()
+        .messages({
+            "string.pattern.base": "Username tidak boleh mengandung spasi atau simbol",
+        }),
+
+    password: Joi.string()
+        .min(8)
+        .required(),
+
+    nama_siswa: Joi.string()
+        .trim()
+        .min(3)
+        .required(),
+
+    alamat: Joi.string()
+        .allow("")
+        .optional(),
+
+    telp: Joi.string()
+        .trim()
+        .pattern(/^(?:\+62|0)[0-9]{9,13}$/)
+        .required()
+        .messages({
+            "string.pattern.base": "Nomor telepon tidak valid",
+        }),
+
+    jenis_kelamin: Joi.string()
+        .valid("laki_laki", "perempuan")
+        .required(),
 })
 
 const updateDataSiswa = Joi.object({
@@ -22,11 +50,30 @@ const updateDataSiswa = Joi.object({
 })
 
 const registerDataAdminStan = Joi.object({
-    username: Joi.string().required(),
-    password: Joi.string().min(8).required(),
-    nama_stan: Joi.string().required(),
-    nama_pemilik: Joi.string().required(),
-    telp: Joi.string().optional(),
+    username: Joi.string()
+        .trim()
+        .lowercase()
+        .min(4)
+        .max(30)
+        .pattern(/^[a-zA-Z0-9_]+$/)
+        .required(),
+
+    password: Joi.string()
+        .min(8)
+        .required(),
+
+    nama_stan: Joi.string()
+        .trim()
+        .required(),
+
+    nama_pemilik: Joi.string()
+        .trim()
+        .required(),
+
+    telp: Joi.string()
+        .trim()
+        .pattern(/^(?:\+62|0)[0-9]{9,13}$/)
+        .optional(),
 })
 
 const updateDataAdminStan = Joi.object({
@@ -40,7 +87,7 @@ const updateDataAdminStan = Joi.object({
 
 const loginUser = Joi.object({
     username: Joi.string().required(),
-    password: Joi.string().min(8).alphanum().required()
+    password: Joi.string().alphanum().required()
 })
 
 export const verifyRegisterUser = (req: Request, res: Response, next: NextFunction) => {
