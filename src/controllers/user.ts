@@ -55,12 +55,13 @@ export const deleteUser = async (req: Request, res: Response) => {
             });
         }
 
-        if (authUser.id !== findUser.id) {
-            return res.status(403).json({
-                status: false,
-                message: "Tidak boleh menghapus user lain."
-            });
-        }
+        // if (authUser.id !== findUser.id) {
+        //     return res.status(403).json({
+        //         status: false,
+        //         message: "Tidak boleh menghapus user lain."
+        //     });
+        // }
+
         const deleteUser = await prisma.user.delete({
             where: { id: Number(id) },
         });
