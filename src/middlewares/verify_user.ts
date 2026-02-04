@@ -1,9 +1,24 @@
 import { NextFunction, Request, Response } from "express";
 import Joi from 'joi'
 
+const usernameSchema = Joi.string()
+    .min(4)
+    .max(30)
+    .pattern(/^[a-zA-Z0-9_]+$/)
+    .custom((value, helpers) => {
+        if (value !== value.trim()) {
+            return helpers.error("string.trim");
+        }
+        return value;
+    })
+    .required()
+    .messages({
+        "string.pattern.base": "Username tidak boleh mengandung spasi atau simbol",
+        "string.trim": "Username tidak boleh diawali atau diakhiri spasi",
+    });
+
 const registerDataSiswa = Joi.object({
-    username: Joi.string()
-        .trim()
+    username: usernameSchema.lowercase()
         .lowercase()
         .min(4)
         .max(30)
@@ -50,12 +65,12 @@ const updateDataSiswa = Joi.object({
 })
 
 const registerDataAdminStan = Joi.object({
-    username: Joi.string()
+    username: usernameSchema.lowercase()
         .trim()
         .lowercase()
         .min(4)
         .max(30)
-        .pattern(/^[a-zA-Z0-9_]+$/)
+        .pattern(/^(?:\+62|0)[0-9]{9,13}$/)
         .required(),
 
     password: Joi.string()
