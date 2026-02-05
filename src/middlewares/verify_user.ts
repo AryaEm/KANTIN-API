@@ -70,7 +70,7 @@ const registerDataAdminStan = Joi.object({
         .lowercase()
         .min(4)
         .max(30)
-        .pattern(/^(?:\+62|0)[0-9]{9,13}$/)
+        .pattern(/^[a-zA-Z0-9_]+$/)
         .required(),
 
     password: Joi.string()
