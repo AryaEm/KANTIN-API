@@ -37,9 +37,9 @@ const swaggerOptions = {
     swaggerDefinition: {
         openapi: '3.0.0',
         info: {
-            title: 'Ordering System API',
+            title: 'KantinIn API',
             version: '1.0.0',
-            description: 'API documentation for the ordering system',
+            description: 'API documentation for the KantinIn',
         },
         servers: [
             {
