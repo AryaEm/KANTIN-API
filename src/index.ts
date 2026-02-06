@@ -33,7 +33,7 @@ app.use(
 app.options("*", cors());
 app.use(express.json())
 
-const swaggerOptions = {
+const swaggerOptions = {    
     swaggerDefinition: {
         openapi: '3.0.0',
         info: {

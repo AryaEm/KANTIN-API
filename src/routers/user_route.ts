@@ -14,11 +14,11 @@ app.post(`/register-siswa`, [verifyRegisterUser], registerSiswa)
 app.post(`/register-admin`, [verifyRegisterAdminStan], registerStan)
 app.post(`/login`, [verifyLoginUser], authentication)
 
-app.get(`/`, [verifyToken, verifyRole(["admin_stan"])], getAllUsers) // MENAMPILKAN SEMUA USER (ADMIN STAN)
+app.get(`/`, [verifyToken, verifyRole(["admin_stan"])], getAllUsers)                                                   // MENAMPILKAN SEMUA USER (ADMIN STAN)
 app.get('/profil', [verifyToken, verifyRole(["admin_stan", "siswa"])], getProfile)
-app.put(`/update-siswa/:id`, [verifyToken, verifyRole(["siswa"]), verifyUpdateUser], updateSiswa) // UPDATE/EDIT SISWA
-app.put(`/update-admin-stan/:id`, [verifyToken, verifyRole(["admin_stan"]), verifyUpdateAdminStan], updateAdminStan) // UPDATE/EDIT ADMIN STAN
-app.put(`/siswa/pic/:id`, [verifyToken, verifyRole(["siswa"]), uploadFile.single("foto")], updateFotoSiswa) // ADD/EDIT FOTO SISWA
-app.delete(`/delete/:id`, [verifyToken], deleteUser) // DELETE USER (SISWA & ADMIN STAN)
+app.put(`/update-siswa/:id`, [verifyToken, verifyRole(["siswa"]), verifyUpdateUser], updateSiswa)                       // UPDATE/EDIT SISWA
+app.put(`/update-admin-stan/:id`, [verifyToken, verifyRole(["admin_stan"]), verifyUpdateAdminStan], updateAdminStan)    // UPDATE/EDIT ADMIN STAN
+app.put(`/siswa/pic/:id`, [verifyToken, verifyRole(["siswa"]), uploadFile.single("foto")], updateFotoSiswa)             // ADD/EDIT FOTO SISWA
+app.delete(`/delete/:id`, [verifyToken], deleteUser)                                                                    // DELETE USER (SISWA & ADMIN STAN)
 
 export default app
