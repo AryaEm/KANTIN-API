@@ -551,6 +551,7 @@ export const getStanHistorySelesai = async (req: Request, res: Response) => {
     }
 };
 
+
 export const getSiswaHistory = async (req: Request, res: Response) => {
     try {
         const authUser = res.locals.user;
