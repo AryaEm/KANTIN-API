@@ -75,10 +75,10 @@ model Stan {
 
 model Menu {
   id        Int        @id @default(autoincrement())
-  nama_menu String     
+  nama_menu String
   harga     Int        @default(0)
   jenis     JenisMenu  @default(makanan)
-  foto      String?    
+  foto      String?
   deskripsi String?    @db.Text
   status    StatusMenu @default(tersedia)
 
@@ -110,6 +110,7 @@ model DetailTransaksi {
 
   id_menu   Int?
   nama_menu String
+  foto      String?
 
   harga_asli           Int
   persentase_diskon    Int @default(0)
@@ -124,7 +125,7 @@ model DetailTransaksi {
 
 model Diskon {
   id                Int      @id @default(autoincrement())
-  nama_diskon       String   
+  nama_diskon       String
   persentase_diskon Int      @default(0)
   tanggal_awal      DateTime
   tanggal_akhir     DateTime

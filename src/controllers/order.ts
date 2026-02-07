@@ -483,6 +483,7 @@ export const getStanHistorySelesai = async (req: Request, res: Response) => {
                     select: {
                         id_menu: true,
                         nama_menu: true,
+                        foto: true,
                         harga_asli: true,
                         persentase_diskon: true,
                         harga_setelah_diskon: true,
@@ -518,6 +519,7 @@ export const getStanHistorySelesai = async (req: Request, res: Response) => {
                 items: trx.detail.map((item) => ({
                     id_menu: item.id_menu,
                     nama_menu: item.nama_menu,
+                    foto: item.foto,
                     qty: item.qty,
                     harga_satuan: item.harga_asli,
                     diskon_persen: item.persentase_diskon,
