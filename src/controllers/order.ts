@@ -98,6 +98,7 @@ export const createTransaksi = async (req: Request, res: Response) => {
             return {
                 id_menu: menu.id,
                 nama_menu: menu.nama_menu,
+                foto: menu.foto,
                 harga_asli: menu.harga,
                 persentase_diskon: persentase,
                 harga_setelah_diskon: Math.round(hargaSetelahDiskon),
@@ -146,6 +147,7 @@ export const createTransaksi = async (req: Request, res: Response) => {
                 items: transaksi.detail.map((d) => ({
                     id_menu: d.id_menu,
                     nama_menu: d.nama_menu,
+                    foto:d.foto,
                     qty: d.qty,
                     harga_satuan: d.harga_asli,
                     diskon_persen: d.persentase_diskon,
