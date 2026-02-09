@@ -147,7 +147,7 @@ export const createTransaksi = async (req: Request, res: Response) => {
                 items: transaksi.detail.map((d) => ({
                     id_menu: d.id_menu,
                     nama_menu: d.nama_menu,
-                    foto:d.foto,
+                    foto: d.foto,
                     qty: d.qty,
                     harga_satuan: d.harga_asli,
                     diskon_persen: d.persentase_diskon,
@@ -1115,10 +1115,23 @@ export const getTransaksiNotaById = async (req: Request, res: Response) => {
             });
         }
 
+        const siswa = await prisma.siswa.findFirst({
+            where: {
+                id_user: authUser.id,
+            },
+        });
+
+        if (!siswa) {
+            return res.status(404).json({
+                status: false,
+                message: "Data siswa tidak ditemukan.",
+            });
+        }
+
         const transaksi = await prisma.transaksi.findFirst({
             where: {
                 id: id_transaksi,
-                id_siswa: authUser.id,
+                id_siswa: siswa.id,
             },
             include: {
                 stan: {
@@ -1212,13 +1225,38 @@ export const getTransaksiNotaById = async (req: Request, res: Response) => {
 
 export const downloadNotaPdf = async (req: Request, res: Response) => {
     try {
-        const authUser = res.locals.user; 
+        const authUser = res.locals.user;
         const id = Number(req.params.id);
+
+        if (!authUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized",
+            });
+        }
+
+        if (isNaN(id)) {
+            return res.status(400).json({
+                status: false,
+                message: "ID transaksi tidak valid",
+            });
+        }
+
+        const siswa = await prisma.siswa.findFirst({
+            where: { id_user: authUser.id },
+        });
+
+        if (!siswa) {
+            return res.status(404).json({
+                status: false,
+                message: "Data siswa tidak ditemukan",
+            });
+        }
 
         const transaksi = await prisma.transaksi.findFirst({
             where: {
                 id,
-                id_siswa: authUser.id,
+                id_siswa: siswa.id,
             },
             include: {
                 stan: true,
@@ -1231,7 +1269,7 @@ export const downloadNotaPdf = async (req: Request, res: Response) => {
             return res.status(404).json({ message: "Transaksi tidak ditemukan" });
         }
 
-        const doc = new PDFDocument({ 
+        const doc = new PDFDocument({
             margin: 50,
             size: 'A4',
             bufferPages: true,
@@ -1256,37 +1294,37 @@ export const downloadNotaPdf = async (req: Request, res: Response) => {
         // ==================== HEADER ====================
         // Background header dengan gradient effect
         doc.rect(0, 0, doc.page.width, 140)
-           .fill(tealDark);
+            .fill(tealDark);
 
         // Logo/Icon placeholder (bisa diganti dengan logo asli)
         doc.circle(70, 60, 25)
-           .fill('white');
-        
+            .fill('white');
+
         doc.fontSize(10)
-           .fillColor(tealDark)
-           .text('STAN', 55, 55);
+            .fillColor(tealDark)
+            .text('STAN', 55, 55);
 
         // Title INVOICE
         doc.fontSize(28)
-           .fillColor('white')
-           .text('INVOICE', 120, 45, { continued: false });
+            .fillColor('white')
+            .text('INVOICE', 120, 45, { continued: false });
 
         // ID Transaksi di header
         doc.fontSize(11)
-           .fillColor('#ccfbf1')
-           .text(`#${String(transaksi.id).padStart(6, '0')}`, 120, 80);
+            .fillColor('#ccfbf1')
+            .text(`#${String(transaksi.id).padStart(6, '0')}`, 120, 80);
 
         // Tanggal di kanan atas
         doc.fontSize(10)
-           .fillColor('white')
-           .text(`Tanggal: ${transaksi.tanggal.toLocaleDateString("id-ID", {
-               day: '2-digit',
-               month: 'long', 
-               year: 'numeric'
-           })}`, 350, 55, { 
-               width: 200,
-               align: 'right' 
-           });
+            .fillColor('white')
+            .text(`Tanggal: ${transaksi.tanggal.toLocaleDateString("id-ID", {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            })}`, 350, 55, {
+                width: 200,
+                align: 'right'
+            });
 
         // Status badge
         const statusColors: Record<string, string> = {
@@ -1298,49 +1336,49 @@ export const downloadNotaPdf = async (req: Request, res: Response) => {
         const statusColor = statusColors[transaksi.status.toLowerCase()] || tealLight;
 
         doc.roundedRect(350, 85, 195, 25, 5)
-           .fill(statusColor);
-        
+            .fill(statusColor);
+
         doc.fontSize(10)
-           .fillColor('white')
-           .text(transaksi.status.toUpperCase(), 350, 92, {
-               width: 195,
-               align: 'center'
-           });
+            .fillColor('white')
+            .text(transaksi.status.toUpperCase(), 350, 92, {
+                width: 195,
+                align: 'center'
+            });
 
         // ==================== INFO SECTION ====================
         let yPosition = 170;
 
         // Card untuk info stan dan pembeli
         doc.roundedRect(50, yPosition, 495, 100, 8)
-           .fill(tealBg);
+            .fill(tealBg);
 
         // Garis pembatas vertikal
         doc.moveTo(297.5, yPosition + 20)
-           .lineTo(297.5, yPosition + 80)
-           .strokeColor('#99f6e4')
-           .lineWidth(1)
-           .stroke();
+            .lineTo(297.5, yPosition + 80)
+            .strokeColor('#99f6e4')
+            .lineWidth(1)
+            .stroke();
 
         // Info Stan (Kiri)
         doc.fontSize(9)
-           .fillColor(gray)
-           .text('STAN PENJUAL', 70, yPosition + 20);
+            .fillColor(gray)
+            .text('STAN PENJUAL', 70, yPosition + 20);
 
         doc.fontSize(13)
-           .fillColor(darkText)
-           .font('Helvetica-Bold')
-           .text(transaksi.stan.nama_stan, 70, yPosition + 40, { width: 200 });
+            .fillColor(darkText)
+            .font('Helvetica-Bold')
+            .text(transaksi.stan.nama_stan, 70, yPosition + 40, { width: 200 });
 
         // Info Pembeli (Kanan)
         doc.fontSize(9)
-           .fillColor(gray)
-           .font('Helvetica')
-           .text('PEMBELI', 320, yPosition + 20);
+            .fillColor(gray)
+            .font('Helvetica')
+            .text('PEMBELI', 320, yPosition + 20);
 
         doc.fontSize(13)
-           .fillColor(darkText)
-           .font('Helvetica-Bold')
-           .text(transaksi.siswa.nama_siswa, 320, yPosition + 40, { width: 200 });
+            .fillColor(darkText)
+            .font('Helvetica-Bold')
+            .text(transaksi.siswa.nama_siswa, 320, yPosition + 40, { width: 200 });
 
         doc.font('Helvetica'); // Reset font
 
@@ -1349,15 +1387,15 @@ export const downloadNotaPdf = async (req: Request, res: Response) => {
 
         // Header tabel
         doc.fontSize(11)
-           .fillColor(tealDark)
-           .font('Helvetica-Bold')
-           .text('DETAIL PESANAN', 50, yPosition);
+            .fillColor(tealDark)
+            .font('Helvetica-Bold')
+            .text('DETAIL PESANAN', 50, yPosition);
 
         yPosition += 30;
 
         // Header kolom tabel
         doc.roundedRect(50, yPosition, 495, 30, 5)
-           .fill(tealDark);
+            .fill(tealDark);
 
         doc.fontSize(10).fillColor('white');
         doc.text('Nama Menu', 65, yPosition + 10, { width: 250, lineBreak: false });
@@ -1373,7 +1411,7 @@ export const downloadNotaPdf = async (req: Request, res: Response) => {
             // Background alternating
             if (index % 2 === 0) {
                 doc.rect(50, yPosition - 3, 495, 28)
-                   .fill('#f9fafb');
+                    .fill('#f9fafb');
             }
 
             doc.fontSize(10).fillColor(darkText);
@@ -1381,10 +1419,10 @@ export const downloadNotaPdf = async (req: Request, res: Response) => {
             doc.fillColor(gray);
             doc.text(`${item.qty}`, 320, yPosition + 5, { width: 60, align: 'center', lineBreak: false });
             doc.text(`Rp ${(item.subtotal / item.qty).toLocaleString("id-ID")}`,
-                     385, yPosition + 5, { width: 80, align: 'right', lineBreak: false });
+                385, yPosition + 5, { width: 80, align: 'right', lineBreak: false });
             doc.fillColor(darkText);
-            doc.text(`Rp ${item.subtotal.toLocaleString("id-ID")}`, 
-                     470, yPosition + 5, { width: 60, align: 'right', lineBreak: false });
+            doc.text(`Rp ${item.subtotal.toLocaleString("id-ID")}`,
+                470, yPosition + 5, { width: 60, align: 'right', lineBreak: false });
 
             yPosition += 28;
         });
@@ -1394,31 +1432,31 @@ export const downloadNotaPdf = async (req: Request, res: Response) => {
 
         // Background untuk total
         doc.roundedRect(345, yPosition, 200, 50, 8)
-           .fill(tealDark);
+            .fill(tealDark);
 
         doc.fontSize(11)
-           .fillColor('#ccfbf1')
-           .text('TOTAL PEMBAYARAN', 360, yPosition + 12);
+            .fillColor('#ccfbf1')
+            .text('TOTAL PEMBAYARAN', 360, yPosition + 12);
 
         const total = transaksi.detail.reduce((s, i) => s + i.subtotal, 0);
 
         doc.fontSize(16)
-           .fillColor('white')
-           .font('Helvetica-Bold')
-           .text(`Rp ${total.toLocaleString("id-ID")}`, 360, yPosition + 28);
+            .fillColor('white')
+            .font('Helvetica-Bold')
+            .text(`Rp ${total.toLocaleString("id-ID")}`, 360, yPosition + 28);
 
         // ==================== FOOTER ====================
         yPosition += 60; // Posisi relatif dari total section, bukan dari page.height
 
         // Garis pembatas
         doc.moveTo(50, yPosition)
-           .lineTo(545, yPosition)
-           .strokeColor('#e5e7eb')
-           .lineWidth(1)
-           .stroke();
+            .lineTo(545, yPosition)
+            .strokeColor('#e5e7eb')
+            .lineWidth(1)
+            .stroke();
 
         doc.fontSize(8).fillColor(gray).font('Helvetica');
-        doc.text('Terima kasih atas pembelian Anda!', 50, yPosition + 15, { 
+        doc.text('Terima kasih atas pembelian Anda!', 50, yPosition + 15, {
             align: 'center',
             width: 495,
             lineBreak: false
@@ -1429,7 +1467,6 @@ export const downloadNotaPdf = async (req: Request, res: Response) => {
             lineBreak: false
         });
 
-        // Watermark
         doc.fontSize(7).fillColor('#d1d5db');
         doc.text(`Generated on ${new Date().toLocaleString('id-ID')}`, 50, yPosition + 50, {
             align: 'center',
